@@ -30,21 +30,112 @@ export default {
             },
 
             // Candidature
-            selectedCandidature: null,
             candidatureDialog: false,
             candidature: {},
             deleteCandidatureDialog: false,
             candidatureAction: '', // VIEW, NEW, EDIT, DELETE
 
             // MISC
-            optionProgramme: [{}]
+            optionProgramme: [
+                {
+                    libelle: 'Baccalauréat en génie électrique',
+                    code: '7543'
+                },
+                {
+                    libelle: 'Baccalauréat en génie informatique',
+                    code: '7643'
+                },
+                {
+                    libelle: 'Baccalauréat en informatique',
+                    code: '7833'
+                },
+                {
+                    libelle: 'Baccalauréat en informatique - régime coopératif',
+                    code: '6627'
+                },
+                {
+                    libelle: 'Certificat en gouvernance et cybersécurité',
+                    code: '4665'
+                }
+            ],
+            trimestre: new Date().getFullYear() * 10 + Math.ceil((new Date().getMonth() + 1) / 4), // Current trimestre
+            loading: false
         };
     },
     mounted() {
-        CandidatService.getCandidat().then((data) => (this.candidats = data));
+        this.fetchCandidatures();
     },
     methods: {
-        // Candidat
+        async fetchCandidatures() {
+            this.loading = true;
+            try {
+                const data = await CandidatService.getCandidatures(this.trimestre);
+                this.candidats = data;
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les candidatures', life: 3000 });
+            } finally {
+                this.loading = false;
+            }
+        },
+        async saveCandidat(candidat) {
+            this.loading = true;
+            try {
+                if (this.candidatAction === 'NEW') {
+                    await CandidatService.createCandidature({
+                        code_permanent: candidat.code_permanent,
+                        email: candidat.email,
+                        nom: candidat.nom,
+                        prenom: candidat.prenom,
+                        cycle: candidat.cycle,
+                        campus: candidat.campus,
+                        programme: candidat.programme, // Send the code
+                        trimestre: this.trimestre,
+                        courses: candidat.candidature.map((c) => ({
+                            sigle: c.sigle,
+                            titre: c.titre,
+                            note: c.note
+                        }))
+                    });
+                } else if (this.candidatAction === 'EDIT') {
+                    await CandidatService.updateCandidature(candidat.id, {
+                        code_permanent: candidat.code_permanent,
+                        email: candidat.email,
+                        nom: candidat.nom,
+                        prenom: candidat.prenom,
+                        cycle: candidat.cycle,
+                        campus: candidat.campus,
+                        programme: candidat.programme, // Send the code
+                        trimestre: this.trimestre,
+                        courses: candidat.candidature.map((c) => ({
+                            sigle: c.sigle,
+                            titre: c.titre,
+                            note: c.note
+                        }))
+                    });
+                }
+                this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Candidat sauvegardé', life: 3000 });
+                await this.fetchCandidatures();
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de sauvegarder le candidat', life: 3000 });
+            } finally {
+                this.loading = false;
+            }
+            this.confirmCandidatDialog = false;
+            this.candidatDialog = false;
+        },
+        async deleteCandidat() {
+            this.loading = true;
+            try {
+                await CandidatService.deleteCandidature(this.candidat.id);
+                this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Candidat supprimé', life: 3000 });
+                await this.fetchCandidatures();
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de supprimer le candidat', life: 3000 });
+            } finally {
+                this.loading = false;
+            }
+            this.deleteCandidatDialog = false;
+        },
         openViewCandidat(candidat) {
             this.candidat = candidat;
 
@@ -57,7 +148,7 @@ export default {
                 email: '',
                 nom: '',
                 prenom: '',
-                campus: { label: 'GAT', value: 'Gatineau' },
+                campus: 'gatineau',
                 cycle: 1,
                 programme: '',
                 candidature: []
@@ -67,7 +158,7 @@ export default {
                 email: false,
                 nom: false,
                 prenom: false,
-                campus: { label: 'GAT', value: 'Gatineau' },
+                campus: false,
                 cycle: false,
                 programme: false,
                 candidature: false
@@ -76,26 +167,6 @@ export default {
             this.candidatDialog = true;
 
             this.candidatAction = 'NEW';
-        },
-        saveCandidat(candidat) {
-            if (candidat.campus) {
-                candidat.campus = candidat.campus.label;
-            }
-
-            if (this.candidatAction === 'NEW') {
-                console.log('candid', candidat);
-                this.candidats.push(candidat);
-                this.toast.add({ severity: 'success', summary: 'Candidat Added', detail: 'New candidate has been added.', life: 3000 });
-            } else if (this.candidatAction === 'EDIT') {
-                const index = this.candidats.findIndex((c) => c.code_permanent === candidat.code_permanent);
-                if (index !== -1) {
-                    this.candidats.splice(index, 1, candidat);
-                    this.toast.add({ severity: 'success', summary: 'Candidat Updated', detail: 'Candidate details have been updated.', life: 3000 });
-                }
-            }
-
-            this.confirmCandidatDialog = false;
-            this.candidatDialog = false;
         },
         openEditCandidat(candidat) {
             this.candidat = { ...candidat };
@@ -171,14 +242,15 @@ export default {
             this.deleteCandidatureDialog = true;
         },
         confirmEditCandidature(candidature) {
-            if (this.candidatAction === 'NEW') {
+            console.log(this.candidature, candidature == candidature, candidature === candidature, this.candidatAction);
+            if (this.candidatureAction === 'NEW') {
                 if (this.candidat.candidature.find((val) => val.sigle === candidature.sigle) !== undefined) {
                     this.toast.add({ severity: 'warn', summary: 'Attention', detail: 'Une candidature pour ce cours existe déjà pour ce candidat', life: 2000 });
                     return;
                 }
-                this.candidat.candidature.push(candidature);
+                this.candidat.candidature.push(this.candidature);
                 this.candidatureDialog = false;
-            } else if (this.candidatAction === 'EDIT') {
+            } else if (this.candidatureAction === 'EDIT') {
                 const index = this.candidat.candidature.findIndex((c) => c.sigle === candidature.sigle);
                 if (index !== -1) {
                     this.candidat.candidature.splice(index, 1, candidature);
@@ -186,14 +258,9 @@ export default {
                 this.candidatureDialog = false;
             }
         },
-        deleteCandidat() {
-            this.deleteCandidatDialog = false;
-            this.candidat = {};
-            this.toast.add({ severity: 'success', summary: 'Successful', detail: 'Candidat(e) supprimé(e)', life: 3000 });
-        },
         deleteCandidature() {
+            this.candidat.candidature = this.candidat.candidature.filter((c) => c.sigle !== this.candidature.sigle);
             this.deleteCandidatureDialog = false;
-            this.candidature = {};
             this.toast.add({ severity: 'success', summary: 'Successful', detail: 'Candidature supprimée', life: 3000 });
         },
 
@@ -247,7 +314,10 @@ export default {
                                     </InputIcon>
                                     <InputText v-model="filters['global'].value" placeholder="Recherche..." />
                                 </IconField>
-                                <Button label="Ajouter un nouveau candidat" icon="pi pi-plus" severity="primary" class="mr-2" @click="openNewCandidat" />
+                                <div class="flex gap-2">
+                                    <Button label="Ajouter" icon="pi pi-plus" severity="primary" class="mr-2" @click="openNewCandidat" />
+                                    <Button icon="pi pi-refresh" class="mr-2" outlined @click="fetchCandidatures" />
+                                </div>
                             </div>
                         </template>
 
@@ -297,7 +367,7 @@ export default {
                 <div class="card" :style="!candidatDialog ? { display: 'none' } : {}">
                     <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
                     <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="candidatDialog = false" />
-                    <div class="max-w-3xl mx-auto p-4">
+                    <div class="max-w-4xl mx-auto p-4">
                         <!-- Form divided into clear sections -->
                         <div class="space-y-8">
                             <!-- Section 1: Identification -->
@@ -314,42 +384,24 @@ export default {
                                             <label for="nom" class="block text-sm font-medium mb-1">Nom <span class="text-red-500">*</span></label>
                                             <InputText id="nom" v-model="candidat.nom" class="w-full" :invalid="candidatFormState.nom" @change="candidatFormState.nom = false" />
                                         </div>
-                                    </div>
-
-                                    <!-- Code permanent - highlighted as important -->
-                                    <div>
-                                        <label for="code_permanent" class="block text-sm font-medium mb-1"> Code permanent <span class="text-red-500">*</span> </label>
-                                        <InputText
-                                            id="code_permanent"
-                                            v-model="candidat.code_permanent"
-                                            class="w-full"
-                                            placeholder="DOEJ12345678"
-                                            maxlength="12"
-                                            :invalid="candidatFormState.code_permanent"
-                                            @change="candidatFormState.code_permanent = false"
-                                        />
-                                    </div>
-
-                                    <!-- Email -->
-                                    <div>
-                                        <label for="email" class="block text-sm font-medium mb-1">Adresse courriel de l'UQO</label>
-                                        <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :class="{ 'border-red-500': candidatFormState.email }" @change="candidatFormState.email = false" />
-                                    </div>
-
-                                    <!-- Campus selection -->
-                                    <div>
-                                        <label for="campus" class="block text-sm font-medium mb-1">Campus d'admission</label>
-                                        <Select
-                                            id="campus"
-                                            v-model="candidat.campus"
-                                            :options="[
-                                                { label: 'Gatineau', value: 'Gatineau' },
-                                                { label: 'Saint-Jérôme', value: 'St-Jerome' }
-                                            ]"
-                                            optionLabel="label"
-                                            class="w-full"
-                                            placeholder="Sélectionnez un campus"
-                                        />
+                                        <!-- Code permanent - highlighted as important -->
+                                        <div>
+                                            <label for="code_permanent" class="block text-sm font-medium mb-1"> Code permanent <span class="text-red-500">*</span> </label>
+                                            <InputText
+                                                id="code_permanent"
+                                                v-model="candidat.code_permanent"
+                                                class="w-full"
+                                                placeholder="DOEJ12345678"
+                                                maxlength="12"
+                                                :invalid="candidatFormState.code_permanent"
+                                                @change="candidatFormState.code_permanent = false"
+                                            />
+                                        </div>
+                                        <!-- Email -->
+                                        <div>
+                                            <label for="email" class="block text-sm font-medium mb-1">Adresse courriel de l'UQO</label>
+                                            <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :class="{ 'border-red-500': candidatFormState.email }" @change="candidatFormState.email = false" />
+                                        </div>
                                     </div>
 
                                     <!-- CV Upload/Download -->
@@ -367,16 +419,35 @@ export default {
                             <section class="rounded-lg shadow p-6">
                                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Informations académiques</h2>
                                 <div class="space-y-4">
-                                    <!-- Study cycle -->
-                                    <div>
-                                        <label for="cycle" class="block text-sm font-medium mb-1">Cycle d'étude</label>
-                                        <Select id="cycle" v-model="candidat.cycle" :options="[1, 2, 3]" class="w-full" placeholder="Sélectionnez un cycle" @change="getListProgramme(candidat.cycle)" />
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- Study cycle -->
+                                        <div>
+                                            <label for="cycle" class="block text-sm font-medium mb-1">Cycle d'étude <span class="text-red-500">*</span></label>
+                                            <Select id="cycle" v-model="candidat.cycle" :options="[1, 2, 3]" class="w-full" placeholder="Sélectionnez un cycle" @change="getListProgramme(candidat.cycle)" />
+                                        </div>
+
+                                        <!-- Campus selection -->
+                                        <div>
+                                            <label for="campus" class="block text-sm font-medium mb-1">Campus d'admission</label>
+                                            <Select
+                                                id="campus"
+                                                v-model="candidat.campus"
+                                                :options="[
+                                                    { label: 'Gatineau', value: 'gatineau' },
+                                                    { label: 'Saint-Jérôme', value: 'st-jerome' }
+                                                ]"
+                                                optionLabel="label"
+                                                optionValue="value"
+                                                class="w-full"
+                                                placeholder="Sélectionnez un campus"
+                                            />
+                                        </div>
                                     </div>
 
                                     <!-- Study program - only shown when cycle is selected -->
                                     <div v-if="candidat.cycle">
                                         <label for="programme" class="block text-sm font-medium mb-1">Programme d'étude</label>
-                                        <Select id="programme" v-model="candidat.programme" :options="optionProgramme" optionLabel="libelle" class="w-full" placeholder="Sélectionnez un programme" />
+                                        <Select id="programme" v-model="candidat.programme" :options="optionProgramme" optionLabel="libelle" optionValue="code" class="w-full" placeholder="Sélectionnez un programme" />
                                     </div>
                                 </div>
                             </section>
@@ -386,7 +457,7 @@ export default {
                                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Sélection des cours d'intérêt</h2>
 
                                 <!-- Course table -->
-                                <DataTable :value="candidat.candidature" v-model:selection="selectedCandidature" selectionMode="single" class="p-datatable-sm" responsiveLayout="scroll" stripedRows>
+                                <DataTable :value="candidat.candidature" class="p-datatable-sm" responsiveLayout="scroll" stripedRows>
                                     <template #header>
                                         <div class="flex flex-wrap gap-2 items-center justify-between">
                                             <h4 class="m-0">Candidatures</h4>
@@ -395,8 +466,8 @@ export default {
                                     </template>
                                     <Column field="sigle" header="Sigle"></Column>
                                     <Column field="titre" header="Titre du cours"></Column>
-                                    <Column field="note" header="Note obtenue (B+ ou supérieure)"></Column>
-                                    <Column :exportable="false" style="max-width: 5rem">
+                                    <Column field="note" header="Note" style="max-width: 3rem"></Column>
+                                    <Column :exportable="false" style="min-width: 10rem">
                                         <template #body="slotProps">
                                             <Button icon="pi pi-pencil" rounded class="mr-2" outlined @click="openEditCandidature(slotProps.data)" />
                                             <Button icon="pi pi-trash" rounded severity="danger" @click="confirmDeleteCandidature(slotProps.data)" />
@@ -413,15 +484,22 @@ export default {
                     </div>
 
                     <!-- Candidatures -->
-                    <Dialog v-model:visible="candidatureDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
+                    <Dialog v-model:visible="candidatureDialog" :style="{ width: '450px' }" :header="candidatureAction === 'EDIT' ? 'Modification d\'une candidature' : 'Ajout d\'une candidature'" :modal="true">
                         <div class="flex flex-col gap-4">
-                            <InputText v-model="candidature.sigle" type="text" placeholder="Sigle" maxlength="8" />
-                            <InputText v-model="candidature.titre" type="text" placeholder="Titre" />
-                            <Select v-model="candidature.note" :options="['A+', 'A', 'A-', 'B+', 'B', 'B-']" type="text" placeholder="Note" />
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="sigle" class="block text-sm font-medium mb-1">Sigle</label>
+                                    <InputText v-model="candidature.sigle" class="w-full mt-2" type="text" placeholder="Sigle" maxlength="8" :disabled="candidatureAction === 'EDIT'" />
+                                </div>
+                                <div>
+                                    <label for="note" class="block text-sm font-medium mb-1">Note</label>
+                                    <Select v-model="candidature.note" class="w-full mt-2" :options="['A+', 'A', 'A-', 'B+', 'B', 'B-']" type="text" placeholder="Note" />
+                                </div>
+                            </div>
                         </div>
                         <template #footer>
                             <Button label="No" icon="pi pi-times" text @click="candidatureDialog = false" />
-                            <Button label="Yes" icon="pi pi-check" @click="confirmEditCandidature(candidature)" />
+                            <Button label="Yes" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="candidature.sigle.length < 7" />
                         </template>
                     </Dialog>
                     <Dialog v-model:visible="deleteCandidatureDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">

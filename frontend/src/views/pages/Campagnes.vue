@@ -3,12 +3,12 @@ import CreateEditCampagne from '@/components/CreateEditCampagne.vue';
 import StatisticsChart from '@/components/StatisticsChart.vue';
 import { CampagneService } from '@/service/CampagneService';
 import { FilterMatchMode } from '@primevue/core/api';
-import Chart from 'primevue/chart';
 import { useToast } from 'primevue/usetoast';
 
 export default {
     components: {
-        Chart
+        StatisticsChart,
+        CreateEditCampagne
     },
     data() {
         return {

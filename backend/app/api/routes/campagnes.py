@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.api.deps import SessionDep
 from app.models import Campagne, Cours, CampagneStatus
 
-router = APIRouter(prefix="/campagne", tags=["items"])
+router = APIRouter(prefix="/campagne", tags=["campagne"])
 
 class CampagneCreateRequest(BaseModel):
     trimestre: int
