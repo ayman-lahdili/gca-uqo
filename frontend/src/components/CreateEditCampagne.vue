@@ -1,40 +1,38 @@
 <template>
-    <div class="card">
-        <div class="flex justify-between p-4">
-            <h3>{{ getCampagneDialogTitle(campagneAction) }}</h3>
-            <Button icon="pi pi-times" variant="text" rounded severity="secondary" class="mb-4" @click="closeCampagneDialog" />
-        </div>
-        <div class="flex flex-col gap-4">
-            <Button v-if="campagneAction === 'EDIT' && campagne.status === 'en_cours'" label="Conclure" icon="pi pi-stop-circle" class="mx-2" outlined severity="danger" @click="campagne.status = 'cloturee'" />
-            <Button v-else-if="campagneAction === 'EDIT' && campagne.status === 'cloturee'" label="Réactiver" icon="pi pi-play-circle" class="mx-2" outlined severity="success" @click="campagne.status = 'en_cours'" />
-            <div class="flex justify-between mx-2">
-                <div class="flex gap-4 justify-between">
-                    <Select v-if="campagneAction === 'NEW'" id="trimestre" v-model="campagne.trimestre" :options="optionTrimestre" optionLabel="value" placeholder="Sélectionner un trimestre" :disabled="campagne.trimestre !== ''" />
-                    <div v-if="campagne.trimestre !== ''">
-                        <InputText v-model="sigle" type="text" placeholder="Sigle" maxlength="8" style="border-start-end-radius: 0; border-end-end-radius: 0" @keyup.enter="addCourse(sigle)" />
-                        <Button label="Ajouter" @click="addCourse(sigle)" :disabled="sigle.length < 7" style="border-start-start-radius: 0; border-end-start-radius: 0" />
-                    </div>
+    <div class="flex justify-between p-4">
+        <h3>{{ getCampagneDialogTitle(campagneAction) }}</h3>
+        <Button icon="pi pi-times" variant="text" rounded severity="secondary" class="mb-4" @click="closeCampagneDialog" />
+    </div>
+    <div class="flex flex-col gap-4">
+        <Button v-if="campagneAction === 'EDIT' && campagne.status === 'en_cours'" label="Conclure" icon="pi pi-stop-circle" class="mx-2" outlined severity="danger" @click="campagne.status = 'cloturee'" />
+        <Button v-else-if="campagneAction === 'EDIT' && campagne.status === 'cloturee'" label="Réactiver" icon="pi pi-play-circle" class="mx-2" outlined severity="success" @click="campagne.status = 'en_cours'" />
+        <div class="flex justify-between mx-2">
+            <div class="flex gap-4 justify-between">
+                <Select v-if="campagneAction === 'NEW'" id="trimestre" v-model="campagne.trimestre" :options="optionTrimestre" optionLabel="value" placeholder="Sélectionner un trimestre" :disabled="campagne.trimestre !== ''" />
+                <div v-if="campagne.trimestre !== ''">
+                    <InputText v-model="sigle" type="text" placeholder="Sigle" maxlength="8" style="border-start-end-radius: 0; border-end-end-radius: 0" @keyup.enter="addCourse(sigle)" />
+                    <Button label="Ajouter" @click="addCourse(sigle)" :disabled="sigle.length < 7" style="border-start-start-radius: 0; border-end-start-radius: 0" />
                 </div>
-                <Button v-if="campagne.trimestre !== '' && campagneAction === 'NEW'" label="Commencer la campagne" icon="pi pi-arrow-right" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
-                <Button v-if="campagne.trimestre !== '' && campagneAction === 'EDIT'" label="Enregistrer" icon="pi pi-save" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
             </div>
-            <template v-if="campagne.trimestre !== ''">
-                <DataTable :value="campagne.cours" tableStyle="min-width: 50rem">
-                    <Column field="sigle" header="Sigle"></Column>
-                    <Column field="titre" header="Titre"></Column>
-                    <Column field="status" header="Statut">
-                        <template #body="slotProps">
-                            <Tag :value="slotProps.data.status === 'CONFIRME' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'CONFIRME' ? 'success' : 'warn'" />
-                        </template>
-                    </Column>
-                    <Column :exportable="false" style="max-width: 1rem">
-                        <template #body="slotProps">
-                            <Button icon="pi pi-trash" outlined rounded severity="danger" @click="removeCourse(slotProps.data.sigle)" />
-                        </template>
-                    </Column>
-                </DataTable>
-            </template>
+            <Button v-if="campagne.trimestre !== '' && campagneAction === 'NEW'" label="Commencer la campagne" icon="pi pi-arrow-right" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
+            <Button v-if="campagne.trimestre !== '' && campagneAction === 'EDIT'" label="Enregistrer" icon="pi pi-save" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
         </div>
+        <template v-if="campagne.trimestre !== ''">
+            <DataTable :value="campagne.cours" tableStyle="min-width: 50rem">
+                <Column field="sigle" header="Sigle"></Column>
+                <Column field="titre" header="Titre"></Column>
+                <Column field="status" header="Statut">
+                    <template #body="slotProps">
+                        <Tag :value="slotProps.data.status === 'CONFIRME' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'CONFIRME' ? 'success' : 'warn'" />
+                    </template>
+                </Column>
+                <Column :exportable="false" style="max-width: 1rem">
+                    <template #body="slotProps">
+                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="removeCourse(slotProps.data.sigle)" />
+                    </template>
+                </Column>
+            </DataTable>
+        </template>
     </div>
 
     <Dialog v-model:visible="confirmCampagneDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">

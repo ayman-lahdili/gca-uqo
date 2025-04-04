@@ -237,7 +237,9 @@ export default {
                 </Dialog>
             </div>
             <div class="w-1/2 flex-shrink-0 overflow-hidden">
-                <CreateEditCampagne v-if="campagneDialog" v-model:campagne="campagne" :campagne-action="campagneAction" @save="saveCampagne" @close="campagneDialog = false" />
+                <div class="card" :style="!campagneDialog ? { display: 'none' } : {}">
+                    <CreateEditCampagne v-if="campagneDialog" v-model:campagne="campagne" :campagne-action="campagneAction" @save="saveCampagne" @close="campagneDialog = false" />
+                </div>
             </div>
         </div>
     </div>

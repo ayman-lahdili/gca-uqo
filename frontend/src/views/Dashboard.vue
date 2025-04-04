@@ -62,6 +62,8 @@ export default {
         this.selectedTrimestre = 20251;
         CampagneService.getCampagne(this.selectedTrimestre).then((data) => {
             this.campagne = data;
+            console.log(this.campagne);
+
             this.distribution = this.calculateDistribution();
             this.totalActivities = this.calculateTotalActivities(); // Initialize total activities
             this.totalCost = this.calculateTotalCost(); // Initialize total cost
@@ -255,9 +257,11 @@ export default {
                 });
             });
 
-            distribution.forEach((item) => {
-                item.value = (item.value / totalActivities) * 100;
-            });
+            if (totalActivities !== 0) {
+                distribution.forEach((item) => {
+                    item.value = (item.value / totalActivities) * 100;
+                });
+            }
 
             return distribution;
         },
@@ -294,144 +298,146 @@ export default {
         <div class="flex w-[200%] transition-transform duration-500" :class="{ '-translate-x-1/2': seanceDialog }">
             <!-- First Page -->
             <div class="w-1/2 flex-shrink-0 p-4">
-                <div class="mb-3">
-                    <Fieldset class="card" legend="Statistiques" :toggleable="true" :collapsed="false">
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center">
-                                <h1>120</h1>
-                                <span class="ml-1 mb-0 text-sm text-muted-color font-semibold">candidats</span>
-                            </div>
-                            <div class="flex items-center">
-                                <h1>{{ formatCurrency(totalCost) }}</h1>
-                                <span class="ml-4 mb-0 text-sm text-muted-color font-semibold">Hiver 2025</span>
-                            </div>
-                        </div>
-                        <MeterGroup :value="distribution">
-                            <template #start="{ totalPercent }">
-                                <div class="flex justify-between mt-4 mb-2 relative">
-                                    <span>Progrès</span>
-                                    <span :style="{ width: totalPercent + '%' }" class="absolute text-right">{{ totalPercent }}%</span>
-                                    <span class="font-medium">{{ totalActivities }} séances de TD et TP</span>
+                <div :style="seanceDialog ? { display: 'none' } : {}">
+                    <div class="mb-3">
+                        <Fieldset class="card" legend="Statistiques" :toggleable="true" :collapsed="false">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <h1>120</h1>
+                                    <span class="ml-1 mb-0 text-sm text-muted-color font-semibold">candidats</span>
                                 </div>
-                            </template>
-                        </MeterGroup>
-                    </Fieldset>
-                </div>
-                <div class="card">
-                    <DataTable ref="dt" :value="campagne.cours" v-model:expandedRows="expandedRows" dataKey="id">
-                        <template #header>
-                            <div class="flex flex-wrap gap-2 items-center justify-between">
-                                <h4 class="m-0">Tableau de bord</h4>
-                                <IconField>
-                                    <InputIcon>
-                                        <i class="pi pi-search" />
-                                    </InputIcon>
-                                    <InputText v-model="filters['global'].value" placeholder="Recherche..." />
-                                </IconField>
-                                <div>
-                                    <Button label="Synchroniser les horaires" icon="pi pi-refresh" class="p-button-primary mr-2" @click="syncSchedules" />
+                                <div class="flex items-center">
+                                    <h1>{{ formatCurrency(totalCost) }}</h1>
+                                    <span class="ml-4 mb-0 text-sm text-muted-color font-semibold">Hiver 2025</span>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap justify-start gap-2">
-                                <Button text icon="pi pi-plus" label="Agrandir tous" @click="expandAll" />
-                                <Button text icon="pi pi-minus" label="Tous réduire" @click="collapseAll" />
-                            </div>
-                        </template>
-                        <Column expander style="width: 5rem" />
-                        <Column field="sigle" header="Sigle"></Column>
-                        <Column field="titre" header="Titre"></Column>
-                        <Column field="status" header="Status"></Column>
-                        <Column field="contract" header="Contract ($)">
-                            <template #body="slotProps">
-                                {{ formatCurrency(calculateCourseContract(slotProps.data)) }}
-                            </template>
-                        </Column>
-                        <template #expansion="slotProps1">
-                            <div class="p-2">
-                                <DataTable
-                                    :value="slotProps1.data.seance"
-                                    size="small"
-                                    :rowClass="
-                                        (rowData) => ({
-                                            'danger-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'D',
-                                            'success-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'C'
-                                        })
-                                    "
-                                >
-                                    <Column :exportable="false">
-                                        <template #body="slotProps">
-                                            <Button
-                                                v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'D' && slotProps.data.changement.status === 'NC'"
-                                                icon="pi pi-exclamation-triangle"
-                                                severity="danger"
-                                                raised
-                                                outlined
-                                                @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
-                                            />
-                                            <Button
-                                                v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'C' && slotProps.data.changement.status === 'NC'"
-                                                icon="pi pi-plus-circle"
-                                                severity="success"
-                                                raised
-                                                outlined
-                                                @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
-                                            />
-                                        </template>
-                                    </Column>
-                                    <Column field="campus" header="Campus"></Column>
-                                    <Column field="ressource" header="Ressource d'enseignement">
-                                        <template #body="slotProps">
-                                            {{ slotProps.data.ressource[0].nom + ', ' + slotProps.data.ressource[0].prenom }}
-                                        </template>
-                                    </Column>
-                                    <Column field="contract" header="Contract ($)">
-                                        <template #body="slotProps">
-                                            {{ formatCurrency(calculateSeanceContract(slotProps.data)) }}
-                                        </template>
-                                    </Column>
-                                    <Column field="td_activities" header="Nombre de TD">
-                                        <template #body="slotProps">
-                                            {{ countTDActivities(slotProps.data) }}
-                                        </template>
-                                    </Column>
-                                    <Column field="tp_activities" header="Nombre de TP">
-                                        <template #body="slotProps">
-                                            {{ countTPActivities(slotProps.data) }}
-                                        </template>
-                                    </Column>
-                                    <Column :exportable="false" style="min-width: 8rem">
-                                        <template #body="slotProps">
-                                            <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature)" />
-                                            <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
-                                        </template>
-                                    </Column>
-                                </DataTable>
-                            </div>
-                        </template>
-                    </DataTable>
-                </div>
-                <Dialog v-model:visible="confirmChangeDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
-                    <div class="flex items-center gap-4">
-                        <i class="pi pi-exclamation-triangle !text-3xl" />
-                        <span v-if="selectedActivite">
-                            <span v-if="selectedActivite.changement?.type === 'C'">Cette activité a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette activité ?</span>
-                            <span v-else-if="selectedActivite.changement?.type === 'D'">Cette activité a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette activité ?</span>
-                        </span>
-                        <span v-else-if="seance">
-                            <span v-if="seance.changement?.type === 'C'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
-                            <span v-else-if="seance.changement?.type === 'D'"
-                                >Cette séance a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette séance ? Tous les informations sur les assignations des assistants seront supprimée.</span
-                            >
-                        </span>
+                            <MeterGroup :value="distribution">
+                                <template #start="{ totalPercent }">
+                                    <div class="flex justify-between mt-4 mb-2 relative">
+                                        <span></span>
+                                        <span :style="{ width: totalPercent + '%' }" class="absolute text-right">{{ totalPercent }}%</span>
+                                        <span class="font-medium">{{ totalActivities }} séances de TD et TP</span>
+                                    </div>
+                                </template>
+                            </MeterGroup>
+                        </Fieldset>
                     </div>
-                    <template #footer>
-                        <Button label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
-                        <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(seance)" />
-                    </template>
-                </Dialog>
+                    <div class="card">
+                        <DataTable ref="dt" :value="campagne.cours" v-model:expandedRows="expandedRows" dataKey="id">
+                            <template #header>
+                                <div class="flex flex-wrap gap-2 items-center justify-between">
+                                    <h4 class="m-0">Tableau de bord</h4>
+                                    <IconField>
+                                        <InputIcon>
+                                            <i class="pi pi-search" />
+                                        </InputIcon>
+                                        <InputText v-model="filters['global'].value" placeholder="Recherche..." />
+                                    </IconField>
+                                    <div>
+                                        <Button label="Synchroniser les horaires" icon="pi pi-refresh" class="p-button-primary mr-2" @click="syncSchedules" />
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap justify-start gap-2">
+                                    <Button text icon="pi pi-plus" label="Agrandir tous" @click="expandAll" />
+                                    <Button text icon="pi pi-minus" label="Tous réduire" @click="collapseAll" />
+                                </div>
+                            </template>
+                            <Column expander style="width: 5rem" />
+                            <Column field="sigle" header="Sigle"></Column>
+                            <Column field="titre" header="Titre"></Column>
+                            <Column field="status" header="Status"></Column>
+                            <Column field="contract" header="Contract ($)">
+                                <template #body="slotProps">
+                                    {{ formatCurrency(calculateCourseContract(slotProps.data)) }}
+                                </template>
+                            </Column>
+                            <template #expansion="slotProps1">
+                                <div class="p-2">
+                                    <DataTable
+                                        :value="slotProps1.data.seance"
+                                        size="small"
+                                        :rowClass="
+                                            (rowData) => ({
+                                                'danger-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'D',
+                                                'success-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'C'
+                                            })
+                                        "
+                                    >
+                                        <Column :exportable="false">
+                                            <template #body="slotProps">
+                                                <Button
+                                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'D' && slotProps.data.changement.status === 'NC'"
+                                                    icon="pi pi-exclamation-triangle"
+                                                    severity="danger"
+                                                    raised
+                                                    outlined
+                                                    @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
+                                                />
+                                                <Button
+                                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'C' && slotProps.data.changement.status === 'NC'"
+                                                    icon="pi pi-plus-circle"
+                                                    severity="success"
+                                                    raised
+                                                    outlined
+                                                    @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
+                                                />
+                                            </template>
+                                        </Column>
+                                        <Column field="campus" header="Campus"></Column>
+                                        <Column field="ressource" header="Ressource d'enseignement">
+                                            <template #body="slotProps">
+                                                {{ slotProps.data.ressource[0].nom + ', ' + slotProps.data.ressource[0].prenom }}
+                                            </template>
+                                        </Column>
+                                        <Column field="contract" header="Contract ($)">
+                                            <template #body="slotProps">
+                                                {{ formatCurrency(calculateSeanceContract(slotProps.data)) }}
+                                            </template>
+                                        </Column>
+                                        <Column field="td_activities" header="Nombre de TD">
+                                            <template #body="slotProps">
+                                                {{ countTDActivities(slotProps.data) }}
+                                            </template>
+                                        </Column>
+                                        <Column field="tp_activities" header="Nombre de TP">
+                                            <template #body="slotProps">
+                                                {{ countTPActivities(slotProps.data) }}
+                                            </template>
+                                        </Column>
+                                        <Column :exportable="false" style="min-width: 8rem">
+                                            <template #body="slotProps">
+                                                <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature)" />
+                                                <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
+                                            </template>
+                                        </Column>
+                                    </DataTable>
+                                </div>
+                            </template>
+                        </DataTable>
+                    </div>
+                    <Dialog v-model:visible="confirmChangeDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
+                        <div class="flex items-center gap-4">
+                            <i class="pi pi-exclamation-triangle !text-3xl" />
+                            <span v-if="selectedActivite">
+                                <span v-if="selectedActivite.changement?.type === 'C'">Cette activité a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette activité ?</span>
+                                <span v-else-if="selectedActivite.changement?.type === 'D'">Cette activité a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette activité ?</span>
+                            </span>
+                            <span v-else-if="seance">
+                                <span v-if="seance.changement?.type === 'C'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
+                                <span v-else-if="seance.changement?.type === 'D'"
+                                    >Cette séance a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette séance ? Tous les informations sur les assignations des assistants seront supprimée.</span
+                                >
+                            </span>
+                        </div>
+                        <template #footer>
+                            <Button label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
+                            <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(seance)" />
+                        </template>
+                    </Dialog>
+                </div>
             </div>
             <div class="w-1/2 flex-shrink-0">
-                <div class="card mt-2">
+                <div class="card mt-2" :style="!seanceDialog ? { display: 'none' } : {}">
                     <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="confirmCancelSeance" />
                     <Button label="Save" icon="pi pi-check" variant="text" class="mb-4" @click="confirmSaveSeance" />
 

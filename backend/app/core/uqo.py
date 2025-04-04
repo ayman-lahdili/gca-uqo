@@ -7,6 +7,8 @@ import os # Import os for file path handling
 
 from typing import List, Literal, Dict, Any
 
+from app.base_models import ActiviteUQO, SeanceUQO, CoursUQO
+
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
     pass
@@ -88,7 +90,7 @@ class UQOCoursService:
             
             if not self.current_token:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                token_input = soup.find('input', {'name': '__RequestVerificationToken'})
+                token_input: Any = soup.find('input', {'name': '__RequestVerificationToken'})
                 if token_input:
                     self.current_token = token_input['value']            
         except Exception as e:
@@ -122,7 +124,7 @@ class UQOCoursService:
         soup = BeautifulSoup(html_content, 'html.parser')
         
         # Find the div containing course list
-        courses_div = soup.find('div', id='divLstCrs')
+        courses_div: Any = soup.find('div', id='divLstCrs')
         if not courses_div:
             print("Could not find courses div in HTML")
             return []
@@ -140,7 +142,8 @@ class UQOCoursService:
         courses = []
         for item in course_items:
             # Extract sigle
-            sigle_tag = item.find('a')
+            item: Any
+            sigle_tag: Any = item.find('a')
             sigle = sigle_tag.text.strip() if sigle_tag else None
             
             # Extract titre
@@ -190,8 +193,36 @@ class UQOHoraireService:
         return results.json()
 
     def get_course(self, sigle: str):
-        for cours in self.horaire:
-            if cours['SigCrs'] == sigle:
-                return cours
-        return None
+        # print(self.horaire)
+        cours = None
+        for cours_data in self.horaire:
+            if cours_data['SigCrs'] == sigle:
+                cours = CoursUQO(
+                    sigle=cours_data['SigCrs'],
+                    titre=cours_data['TitreCrs'],
+                    cycle=cours_data['CdCyc'],
+                    seance=[]
+                )
+
+                for seance_data in cours_data["LstActCrs"]:
+                    seance = SeanceUQO(
+                        campus=seance_data["LblRegrLieuEnsei"],
+                        activite=[],
+                        groupe=seance_data["Gr"]
+                    )
+
+                    cours.seance.append(seance)
+
+                    for activite_data in seance_data["CollActCrsHor"]:
+                        activite = ActiviteUQO(
+                            type=activite_data["LblDescAct"],
+                            mode=activite_data["CdModeEnsei"],
+                            jour=activite_data["JourSem"],
+                            hr_debut=activite_data["HrsDHor"],
+                            hr_fin=activite_data["HrsFHor"],
+                        )
+                        
+                        seance.activite.append(activite)
+                
+        return cours
 

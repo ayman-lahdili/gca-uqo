@@ -6,6 +6,11 @@ export const CampagneService = {
         return response.data;
     },
 
+    async getCampagne(trimestre) {
+        const response = await apiClient.get(`/v1/campagne?trimestre=` + trimestre);
+        return response.data;
+    },
+
     async createCampagne(payload) {
         const response = await apiClient.post(`/v1/campagne`, payload);
         return response.data;

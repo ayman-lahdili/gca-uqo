@@ -26,6 +26,7 @@ class Cours(SQLModel, table=True):
     sigle: str = Field(index=True)
     titre: str
     status: CoursStatus = Field(default=CoursStatus.non_confirmee)
+    cycle: int = Field(default=1)
 
 class Campus(str, Enum):
     gat = "gatineau"
@@ -36,6 +37,7 @@ class Seance(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     id_cours: int = Field(foreign_key="cours.id")
     campus: Campus = Field(default=Campus.gat)
+    groupe: str
 
 class ActiviteType(str, Enum):
     TD = "TD"
@@ -82,3 +84,4 @@ class Candidature(SQLModel, table=True):
     note: Note = Field(default=Note.non_specifie)
     sigle: str
     trimestre: int
+
