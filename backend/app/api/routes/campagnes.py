@@ -6,7 +6,10 @@ from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours
+from app.schemas.enums import CoursStatus
 from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus
+
+from app.core.diffs import CoursDiffer
 
 router = APIRouter(prefix="/campagne", tags=["campagne"])
 
@@ -69,7 +72,7 @@ class CampagneUpdateRequest(BaseModel):
     status: str | None = None
     sigles: List[str] | None = None
 
-@router.put("/{trimestre}", response_model=CampagneRead)
+@router.put("/{trimestre}", response_model=CampagneFullRead)
 def update_campagne(
     trimestre: int,
     payload: CampagneUpdateRequest,
@@ -119,10 +122,36 @@ def update_campagne(
 
     return campagne
 
-@router.post("/{trimestre}/sync")
+@router.post("/{trimestre}/sync", response_model=CampagneFullRead)
 def sync_campagne(
     trimestre: int,
     session: SessionDep,
     uqo_service: HoraireDep,
 ) -> Any:
-    pass
+    campagne = session.exec(select(Campagne).where(Campagne.trimestre == trimestre)).first()
+
+    if not campagne:
+        raise HTTPException(status_code=404, detail="Campagne not found")
+
+    for old_cours in campagne.cours:
+        new_cours = uqo_service.get_course(old_cours.sigle)
+
+        if not new_cours:
+            old_cours.status = CoursStatus.non_confirmee
+            continue
+        else:
+            old_cours.status = CoursStatus.confirmee
+
+        differ = CoursDiffer(old_cours, new_cours)
+
+        old_cours = differ.compare()
+
+        print(old_cours)
+
+        session.add(old_cours)
+    
+    session.commit()
+
+    session.refresh(campagne, attribute_names=['cours'])
+
+    return campagne

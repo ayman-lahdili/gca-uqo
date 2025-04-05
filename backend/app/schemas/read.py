@@ -1,20 +1,23 @@
 from sqlmodel import SQLModel
 from typing import List, Optional
 from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus
+from app.schemas.change import Change
 
 class ActiviteRead(SQLModel):
     id: int
     type: ActiviteType | None = None
     mode: ActiviteMode | None = None
-    jour: str
-    hr_debut: str
-    hr_fin: str
+    jour: int
+    hr_debut: int
+    hr_fin: int
+    change: Change
 
 class SeanceRead(SQLModel):
     id: int
     campus: Campus
     groupe: str
     activite: List[ActiviteRead] = []
+    change: Change
 
 class CoursRead(SQLModel):
     id: int
@@ -25,6 +28,7 @@ class CoursRead(SQLModel):
 
 class CoursFullRead(CoursRead):
     seance: List[SeanceRead] = []
+    change: Change
 
 class CampagneFullRead(SQLModel):
     id: int

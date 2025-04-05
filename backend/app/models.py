@@ -3,6 +3,28 @@ from typing import Optional, Any, Dict
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship
 from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus
 from app.schemas.change import Change
+from sqlalchemy.types import TypeDecorator, VARCHAR
+import json
+
+class ChangeType(TypeDecorator):
+    """Custom SQLAlchemy type for Change model"""
+    impl = VARCHAR
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, Change):
+            return value.model_dump_json()  # Use model_dump_json() in Pydantic v2
+        return json.dumps(value)
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        try:
+            print('FILIALAS', value)
+            return Change.model_validate_json(value)
+        except ValueError:
+            return Change()
 
 class Campagne(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -18,7 +40,7 @@ class Cours(SQLModel, table=True):
     titre: str
     status: CoursStatus = Field(default=CoursStatus.non_confirmee)
     cycle: int = Field(default=1)
-    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
+    change: Change = Field(default=Change(), sa_column=Column(ChangeType)) 
 
     seance: list["Seance"] = Relationship(back_populates="cours")
 
@@ -29,7 +51,7 @@ class Seance(SQLModel, table=True):
     id: Optional[int] | None = Field(default=None, primary_key=True)
     campus: Campus = Field(default=Campus.gat)
     groupe: str
-    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
+    change: Change = Field(default=Change(), sa_column=Column(ChangeType)) 
 
     id_cours: int | None = Field(default=None, foreign_key="cours.id")
     cours: Cours = Relationship(back_populates="seance")
@@ -43,7 +65,7 @@ class Activite(SQLModel, table=True):
     jour: int
     hr_debut: int
     hr_fin: int
-    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
+    change: Change = Field(default=Change(), sa_column=Column(ChangeType)) 
 
     id_seance: int | None = Field(default=None, foreign_key="seance.id")
     seance: Seance = Relationship(back_populates="activite")

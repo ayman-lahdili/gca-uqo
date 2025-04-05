@@ -9,6 +9,7 @@ from typing import List, Literal, Dict, Any
 
 from app.models import Cours, Activite, Seance
 from app.core.diffs import Change
+from app.schemas.enums import Campus, ActiviteType, ActiviteMode
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -208,20 +209,20 @@ class UQOHoraireService:
         return Cours(
             sigle=cours['SigCrs'],
             titre=cours['TitreCrs'],
-            cycle=cours['CdCyc'],
+            cycle=int(cours['CdCyc']),
             change=Change(),
             seance=[
                 Seance(
-                    campus=seance["LblRegrLieuEnsei"],
+                    campus=_parse_campus(seance["LblRegrLieuEnsei"]),
                     groupe=seance["Gr"],
                     change=Change(),
                     activite=[
                         Activite(
-                            type=activite["LblDescAct"],
-                            mode=activite["CdModeEnsei"],
-                            jour=activite["JourSem"],
-                            hr_debut=activite["HrsDHor"],
-                            hr_fin=activite["HrsFHor"],
+                            type=_parse_activite_type(activite["LblDescAct"]),
+                            mode=_parse_activite_mdoe(activite["CdModeEnsei"]),
+                            jour=_parse_jour(activite["JourSem"]),
+                            hr_debut=int(activite["HrsDHor"]),
+                            hr_fin=int(activite["HrsFHor"]),
                             change=Change()
                         )
                         for activite in seance["CollActCrsHor"]
@@ -231,3 +232,15 @@ class UQOHoraireService:
             ]
         )
 
+def _parse_campus(unparsed: str):
+    # if 'gatineau' in unparsed.lower():
+    return Campus.gat
+
+def _parse_activite_type(unparsed: str):
+    return ActiviteType.TD
+
+def _parse_activite_mdoe(unparsed: str):
+    return ActiviteMode.DISTANCIEL
+
+def _parse_jour(unparsed: str):
+    return 1
