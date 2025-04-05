@@ -8,6 +8,11 @@ dependencies = [
     "beautifulsoup4>=4.13.3",
     "fastapi[standard]>=0.115.12",
     "pydantic-settings>=2.8.1",
+    "pytest>=8.3.5",
     "requests>=2.32.3",
     "sqlmodel>=0.0.24",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["app/tests"]

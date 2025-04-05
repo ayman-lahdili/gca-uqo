@@ -7,7 +7,8 @@ import os # Import os for file path handling
 
 from typing import List, Literal, Dict, Any
 
-from app.base_models import ActiviteUQO, SeanceUQO, CoursUQO
+from app.models import Cours, Activite, Seance
+from app.core.diffs import Change
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -197,32 +198,36 @@ class UQOHoraireService:
         cours = None
         for cours_data in self.horaire:
             if cours_data['SigCrs'] == sigle:
-                cours = CoursUQO(
-                    sigle=cours_data['SigCrs'],
-                    titre=cours_data['TitreCrs'],
-                    cycle=cours_data['CdCyc'],
-                    seance=[]
-                )
-
-                for seance_data in cours_data["LstActCrs"]:
-                    seance = SeanceUQO(
-                        campus=seance_data["LblRegrLieuEnsei"],
-                        activite=[],
-                        groupe=seance_data["Gr"]
-                    )
-
-                    cours.seance.append(seance)
-
-                    for activite_data in seance_data["CollActCrsHor"]:
-                        activite = ActiviteUQO(
-                            type=activite_data["LblDescAct"],
-                            mode=activite_data["CdModeEnsei"],
-                            jour=activite_data["JourSem"],
-                            hr_debut=activite_data["HrsDHor"],
-                            hr_fin=activite_data["HrsFHor"],
-                        )
-                        
-                        seance.activite.append(activite)
+                cours = self._parse_course(cours_data)
                 
         return cours
+    
+    @staticmethod
+    def _parse_course(cours: Dict[str, Any]) -> Cours:
+        """Parse a course dictionary into a Cours object."""
+        return Cours(
+            sigle=cours['SigCrs'],
+            titre=cours['TitreCrs'],
+            cycle=cours['CdCyc'],
+            change=Change(),
+            seance=[
+                Seance(
+                    campus=seance["LblRegrLieuEnsei"],
+                    groupe=seance["Gr"],
+                    change=Change(),
+                    activite=[
+                        Activite(
+                            type=activite["LblDescAct"],
+                            mode=activite["CdModeEnsei"],
+                            jour=activite["JourSem"],
+                            hr_debut=activite["HrsDHor"],
+                            hr_fin=activite["HrsFHor"],
+                            change=Change()
+                        )
+                        for activite in seance["CollActCrsHor"]
+                    ]
+                )
+                for seance in cours["LstActCrs"]
+            ]
+        )
 

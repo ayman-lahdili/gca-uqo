@@ -2,7 +2,6 @@ import os
 
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.models import Campagne, Cours
 from app.core.config import settings
 
 connect_args = {"check_same_thread": False}

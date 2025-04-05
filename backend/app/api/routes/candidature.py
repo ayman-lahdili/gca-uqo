@@ -6,7 +6,8 @@ from sqlmodel import func, select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep
-from app.models import Campagne, Cours, CampagneStatus, Etudiant, Candidature, Campus, Note
+from app.models import Campagne, Cours, CampagneStatus, Etudiant, Candidature, Campus
+from app.schemas.enums import Note
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 

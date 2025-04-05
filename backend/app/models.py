@@ -1,14 +1,8 @@
-from typing import Annotated, Optional, Literal
+from typing import Optional, Any, Dict
 
-from enum import Enum
-
-from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlmodel import Field, Session, SQLModel, create_engine, select, Column, JSON
-
-class CampagneStatus(str, Enum):
-    en_cours = "en_cours"
-    cloturee = "cloturee"
-    annulee = "annulee"
+from sqlmodel import Field, SQLModel, Column, JSON, Relationship
+from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus
+from app.schemas.change import Change
 
 class Campagne(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -16,49 +10,46 @@ class Campagne(SQLModel, table=True):
     status: CampagneStatus = Field(default=CampagneStatus.en_cours)
     echelle_salariale: list[float] | None = Field(default=[18.85, 24.49, 26.48], sa_column=Column(JSON))
 
-class CoursStatus(str, Enum):
-    confirmee = "confirmee"
-    non_confirmee = "non_confirmee"
+    cours: list["Cours"] = Relationship(back_populates="campagne")
 
 class Cours(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    id_campagne: int = Field(foreign_key="campagne.id")
+    id: Optional[int] | None = Field(default=None, primary_key=True)
     sigle: str = Field(index=True)
     titre: str
     status: CoursStatus = Field(default=CoursStatus.non_confirmee)
     cycle: int = Field(default=1)
+    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
 
-class Campus(str, Enum):
-    gat = "gatineau"
-    stj = "st-jerome"
-    non_specifie = 'non-specife'
+    seance: list["Seance"] = Relationship(back_populates="cours")
+
+    id_campagne: int | None = Field(default=None, foreign_key="campagne.id")
+    campagne: Campagne = Relationship(back_populates="cours")
 
 class Seance(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    id_cours: int = Field(foreign_key="cours.id")
+    id: Optional[int] | None = Field(default=None, primary_key=True)
     campus: Campus = Field(default=Campus.gat)
     groupe: str
+    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
 
-class ActiviteType(str, Enum):
-    TD = "TD"
-    TP = "TP"
-    COURS = "COURS"
+    id_cours: int | None = Field(default=None, foreign_key="cours.id")
+    cours: Cours = Relationship(back_populates="seance")
 
-class ActiviteMode(str, Enum):
-    PRESENTIEL = "PRESENTIEL"
-    DISTANCIEL = "DISTANCIEL"
+    activite: list["Activite"] = Relationship(back_populates="seance")
 
 class Activite(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    id_seance: int = Field(foreign_key="seance.id")
+    id: Optional[int] | None = Field(default=None, primary_key=True)
     type: ActiviteType = Field(default=None)
     mode: ActiviteMode = Field(default=None)
     jour: int
     hr_debut: int
     hr_fin: int
+    change: Change = Field(default=Change(), sa_column=Column(JSON)) 
+
+    id_seance: int | None = Field(default=None, foreign_key="seance.id")
+    seance: Seance = Relationship(back_populates="activite")
 
 class Etudiant(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] | None = Field(default=None, primary_key=True)
     code_permanent: str = Field(index=True)
     email: str
     nom: str
@@ -68,17 +59,8 @@ class Etudiant(SQLModel, table=True):
     programme: str
     trimestre: int
 
-class Note(str, Enum):
-    A_p = "A+"
-    A = "A"
-    A_m = "A-"
-    B_p = "B+"
-    B = "B"
-    B_m = "B-"
-    non_specifie = 'non-specife'
-
 class Candidature(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] | None = Field(default=None, primary_key=True)
     id_etudiant: int = Field(foreign_key="etudiant.id")
     id_activite: Optional[int] = Field(foreign_key="activite.id", default=None)
     note: Note = Field(default=Note.non_specifie)
