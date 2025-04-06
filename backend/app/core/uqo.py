@@ -210,12 +210,15 @@ class UQOHoraireService:
             seance=[
                 Seance(
                     campus=_parse_campus(seance["LblRegrLieuEnsei"]),
+                    trimestre=int(cours['CdTrimestreAct']),
                     groupe=seance["Gr"],
                     change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                     sigle=cours['SigCrs'],
-                    trimestre=int(cours['CdTrimestreAct']),
                     activite=[
                         Activite(
+                            trimestre=int(cours['CdTrimestreAct']),
+                            sigle=cours['SigCrs'],
+                            groupe=seance["Gr"],
                             type=ActiviteType(activite["LblDescAct"]),
                             mode=ActiviteMode(activite["CdModeEnsei"]),
                             jour=_parse_jour(activite["JourSem"]),
@@ -230,11 +233,14 @@ class UQOHoraireService:
             ]
         )
 
-def _parse_campus(unparsed: str):
-    return {
-        " Gatineau (Alexandre-Taché)": Campus.gat,
-        " St-Jérôme (Campus de St-Jérôme)": Campus.stj
-    }.get(unparsed, Campus.non_specifie)
+def _parse_campus(unparsed: str) -> List[Campus]:
+    unparsed = unparsed.strip().lower()
+    campus = []
+    if 'gat' in unparsed:
+        campus.append(Campus.gat)
+    if 'st' in unparsed:
+        campus.append(Campus.stj)
+    return campus
 
 def _parse_jour(unparsed: JourSemaine):
     return {

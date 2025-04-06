@@ -192,9 +192,9 @@ def approve_course(trimestre: int, sigle: str, session: SessionDep):
         approved=True
     )
 
-@router.patch('/seance/{seance_id}/changes/approve', response_model=ApprovalResponse)
-def approve_seance(seance_id: int, session: SessionDep):
-    seance = session.exec(select(Seance).where(Seance.id == seance_id)).first()
+@router.patch('/{trimestre}/{sigle}/{groupe}/changes/approve', response_model=ApprovalResponse)
+def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep):
+    seance = session.exec(select(Seance).where(Seance.trimestre == trimestre, Seance.sigle == sigle, Seance.groupe == groupe)).first()
 
     if not seance:
         raise HTTPException(status_code=404, detail="Seance not found")

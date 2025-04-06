@@ -24,9 +24,10 @@ class ActiviteRead(SQLModel):
     responsable: List[EtudiantRead]
 
 class SeanceRead(SQLModel):
-    id: int
-    campus: Campus
+    trimestre: int
+    sigle: str
     groupe: str
+    campus: List[Campus]
     activite: List[ActiviteRead] = []
     change: Dict
 

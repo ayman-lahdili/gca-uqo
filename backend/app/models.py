@@ -30,23 +30,34 @@ class Cours(SQLModel, table=True):
 class Seance(SQLModel, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
-            ['sigle', 'trimestre'],
-            ['cours.sigle', 'cours.trimestre'],
+            ['trimestre', 'sigle'],
+            ['cours.trimestre', 'cours.sigle'],
         ),
     )
     
-    id: Optional[int] | None = Field(default=None, primary_key=True)
-    campus: Campus = Field(default=Campus.gat)
-    groupe: str
+    campus: list[Campus] = Field(default=Campus.gat, sa_column=Column(JSON))
     change: Dict = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
-    sigle: str
-    trimestre: int
+    trimestre: int = Field(primary_key=True)
+    sigle: str = Field(primary_key=True)
+    groupe: str = Field(primary_key=True)
+
     cours: Cours = Relationship(back_populates="seance")
 
     activite: list["Activite"] = Relationship(back_populates="seance")
 
 class Activite(SQLModel, table=True):
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['trimestre', 'sigle', 'groupe'],
+            ['seance.trimestre', 'seance.sigle', 'seance.groupe'],
+        ),
+    )
+
+    trimestre: int
+    sigle: str
+    groupe: str
+
     id: Optional[int] | None = Field(default=None, primary_key=True)
     type: ActiviteType = Field(default=None)
     mode: ActiviteMode = Field(default=None)
@@ -55,7 +66,6 @@ class Activite(SQLModel, table=True):
     hr_fin: int
     change: Dict = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
-    id_seance: int | None = Field(default=None, foreign_key="seance.id")
     seance: Seance = Relationship(back_populates="activite")
 
     responsable: list["Etudiant"] = Relationship(back_populates="activite")
