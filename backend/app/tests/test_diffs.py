@@ -144,7 +144,7 @@ class TestCoursDiffer(unittest.TestCase):
 
         self.assertEqual(modified_seance[0].change['value'], 
             {
-                'campus': {'old': Campus.gat, 'new': Campus.stj}
+                'campus': {'old': [Campus.gat], 'new': [Campus.stj]}
             }
         )
     
