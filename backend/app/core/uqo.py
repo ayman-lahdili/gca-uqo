@@ -215,6 +215,7 @@ class UQOHoraireService:
                     groupe=seance["Gr"],
                     change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                     sigle=cours['SigCrs'],
+                    ressource=_parse_ressource(seance["LstEnsei"]),
                     activite=[
                         Activite(
                             trimestre=int(cours['CdTrimestreAct']),
@@ -255,3 +256,10 @@ def _parse_jour(unparsed: JourSemaine):
         "samedi": 6,
         "dimanche": 7
     }[unparsed]
+
+def _parse_ressource(unparsed: List[Dict[str, str]]):
+    return [{
+        'nom': prof.get("Nom"),
+        'prenom': prof.get("Prenom"),
+        'courriel': prof.get("AdrCourriel")
+    } for prof in unparsed]

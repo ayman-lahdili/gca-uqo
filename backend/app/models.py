@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship, DATETIME
 from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy import ForeignKeyConstraint
 
 class Campagne(SQLModel, table=True):
@@ -37,6 +37,8 @@ class Seance(SQLModel, table=True):
     )
     
     campus: list[Campus] = Field(default=Campus.gat, sa_column=Column(JSON))
+    ressource: list[Dict[str, str | None]] = Field(default=[], sa_column=Column(MutableList.as_mutable(JSON)))
+
     change: Dict = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
     trimestre: int = Field(primary_key=True)

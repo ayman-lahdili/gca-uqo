@@ -33,6 +33,7 @@ class SeanceRead(SQLModel):
     campus: List[Campus]
     activite: List[ActiviteRead] = []
     change: Dict
+    ressource: list[Dict[str, str | None]]
 
 class CoursRead(SQLModel):
     sigle: str

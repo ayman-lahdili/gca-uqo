@@ -49,7 +49,7 @@ class CoursDiffer:
                 self._compare_single_seance(old_seance, new_seance)
         
     def _compare_single_seance(self, old_seance: Seance, new_seance: Seance):
-        for field in ['groupe', 'campus']:
+        for field in ['groupe', 'campus', 'ressource']:
             old_value, new_value = getattr(old_seance, field), getattr(new_seance, field)
             if old_value == new_value:
                 old_seance.change[field] = None
