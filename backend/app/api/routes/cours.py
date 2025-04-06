@@ -1,0 +1,65 @@
+from typing import Any, List, Dict
+
+from fastapi import APIRouter, HTTPException
+from sqlmodel import select
+from pydantic import BaseModel
+
+from app.api.deps import SessionDep, HoraireDep
+from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
+from app.schemas.enums import CoursStatus, ChangeType, Campus
+from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, CoursFullRead
+
+from app.core.diffs import CoursDiffer
+
+router = APIRouter(prefix="/cours", tags=["campagne"])
+
+class CandidaturePayload(BaseModel):
+    code_permanent: str
+    nom: str
+    prenom: str
+    cycle: int
+    trimestre: int
+    campus: str = ""
+    programme: str = ""
+    email: str = ""
+
+@router.post('/{trimestre}/{sigle}/candidature', response_model=CoursFullRead)
+def approve_course(trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep):
+    cours = session.exec(select(Cours).where(Cours.trimestre == trimestre and Cours.sigle == sigle)).first()
+
+    if not cours:
+        raise HTTPException(status_code=404, detail="Cours not found")
+
+    student = session.exec(
+        select(Etudiant).where(Etudiant.code_permanent == payload.code_permanent and Etudiant.trimestre == payload.trimestre)
+    ).first()
+
+    if not student:
+        # Create a new student if not found
+        student = Etudiant(
+            code_permanent=payload.code_permanent,
+            email=payload.email,
+            nom=payload.nom,
+            prenom=payload.prenom,
+            cycle=payload.cycle,
+            campus=Campus(payload.campus) if payload.campus else Campus.non_specifie,
+            programme=payload.programme,
+            trimestre=payload.trimestre,
+        )
+        session.add(student)
+        session.commit()
+        session.refresh(student)
+
+    assert student.id is not None, "Student ID should not be None after commit."
+
+    candidature = Candidature(
+        id_etudiant=student.id,
+        sigle=sigle,
+        trimestre=payload.trimestre,
+    )
+
+    session.add(candidature)
+    session.commit()
+    session.refresh(cours, attribute_names=['candidature'])
+
+    return cours

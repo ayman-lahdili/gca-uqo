@@ -24,7 +24,7 @@ class ActiviteRead(SQLModel):
     date_debut: datetime
     date_fin: datetime
     change: Dict
-    responsable: List[EtudiantRead]
+    responsable: List["CandidatureRead"]
 
 class SeanceRead(SQLModel):
     trimestre: int
@@ -47,6 +47,7 @@ class CandidatureRead(SQLModel):
     note: Note
     sigle: str
     trimestre: int
+    etudiant: EtudiantRead
 
 class CoursFullRead(CoursRead):
     seance: List[SeanceRead] = []

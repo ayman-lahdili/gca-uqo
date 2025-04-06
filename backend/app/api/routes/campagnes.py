@@ -5,9 +5,9 @@ from sqlmodel import select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
-from app.models import Campagne, Cours, Seance, Activite
+from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from app.schemas.enums import CoursStatus, ChangeType
-from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus
+from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteRead
 
 from app.core.diffs import CoursDiffer
 
@@ -23,7 +23,6 @@ class CampagneUpdateRequest(BaseModel):
     status: str | None = None
     sigles: List[str] | None = None
 
-
 class ChangeInfo(BaseModel):
     change_type: ChangeType
     value: Dict[str, Any]
@@ -32,6 +31,9 @@ class ApprovalResponse(BaseModel):
     entity: Dict
     change: ChangeInfo
     approved: bool
+
+class AssigneStudentRequest(BaseModel):
+    candidatures: List[str]
 
 @router.post("/", response_model=CampagneFullRead)
 def create_campagne(
@@ -249,6 +251,25 @@ def approve_activite(activite_id: int, session: SessionDep):
         approved=True
     )
 
-@router.put('/act')
-def assigne_student():
-    pass
+@router.put('/activite/{activite_id}/assign', response_model=ActiviteRead)
+def assign_student(payload: AssigneStudentRequest, activite_id, session: SessionDep):
+    activite = session.exec(select(Activite).where(Activite.id == activite_id)).first()
+
+    if not activite:
+        raise HTTPException(status_code=404, detail="Activite not found")
+    
+    for candidature_id in payload.candidatures:
+        candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
+
+        if not candidature:
+            print('Candidature not found')
+            continue
+            
+        candidature.activite = activite
+
+        session.add(candidature)
+    
+    session.commit()
+    session.refresh(activite, attribute_names=['responsable'])
+
+    return activite

@@ -72,7 +72,7 @@ class Activite(SQLModel, table=True):
 
     seance: Seance = Relationship(back_populates="activite")
 
-    responsable: list["Etudiant"] = Relationship(back_populates="activite")
+    responsable: list["Candidature"] = Relationship(back_populates="activite")
 
 class Etudiant(SQLModel, table=True):
     id: Optional[int] | None = Field(default=None, primary_key=True)
@@ -84,11 +84,9 @@ class Etudiant(SQLModel, table=True):
     campus: Campus = Field(default=Campus.non_specifie)
     programme: str
     trimestre: int
+
+    candidature: list["Candidature"] = Relationship(back_populates="etudiant")
     
-    id_activite: int | None = Field(default=None, foreign_key="activite.id")
-
-    activite: Activite = Relationship(back_populates="responsable")
-
 class Candidature(SQLModel, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
@@ -99,9 +97,13 @@ class Candidature(SQLModel, table=True):
 
     id: Optional[int] | None = Field(default=None, primary_key=True)
     id_etudiant: int = Field(foreign_key="etudiant.id")
+    id_activite: int | None = Field(default=None, foreign_key="activite.id")
     note: Note = Field(default=Note.non_specifie)
 
     cours: Cours = Relationship(back_populates="candidature")
+
+    etudiant: Etudiant = Relationship(back_populates="candidature")
+    activite: Activite = Relationship(back_populates="responsable")
 
     sigle: str
     trimestre: int
