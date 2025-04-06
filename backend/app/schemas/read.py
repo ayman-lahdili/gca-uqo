@@ -1,6 +1,17 @@
 from sqlmodel import SQLModel
 from typing import List, Optional, Dict
-from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus
+from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus, Note
+
+class EtudiantRead(SQLModel):
+    id: int
+    code_permanent: str
+    email: str
+    nom: str
+    prenom: str
+    cycle: int
+    campus: Campus
+    programme: str
+    trimestre: int
 
 class ActiviteRead(SQLModel):
     id: int
@@ -10,6 +21,7 @@ class ActiviteRead(SQLModel):
     hr_debut: int
     hr_fin: int
     change: Dict
+    responsable: List[EtudiantRead]
 
 class SeanceRead(SQLModel):
     id: int
@@ -19,14 +31,22 @@ class SeanceRead(SQLModel):
     change: Dict
 
 class CoursRead(SQLModel):
-    id: int
     sigle: str
+    trimestre: int
     titre: str
     status: CoursStatus
     cycle: int
 
+class CandidatureRead(SQLModel):
+    id_etudiant: int
+    id_activite: Optional[int]
+    note: Note
+    sigle: str
+    trimestre: int
+
 class CoursFullRead(CoursRead):
     seance: List[SeanceRead] = []
+    candidature: List[CandidatureRead]
     change: Dict
 
 class CampagneFullRead(SQLModel):

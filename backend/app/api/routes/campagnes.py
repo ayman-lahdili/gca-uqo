@@ -29,8 +29,7 @@ class ChangeInfo(BaseModel):
     value: Dict[str, Any]
 
 class ApprovalResponse(BaseModel):
-    id: int
-    entity_type: str
+    entity: Dict
     change: ChangeInfo
     approved: bool
 
@@ -55,6 +54,7 @@ def create_campagne(
     for sigle in set(payload.sigles):
         cours = Cours(
             campagne=campagne,
+            trimestre=payload.trimestre,
             sigle=sigle,
             titre=""
         )
@@ -122,6 +122,7 @@ def update_campagne(
         for sigle in sigles_to_add:
             new_course = Cours(
                 campagne=campagne,
+                trimestre=trimestre,
                 sigle=sigle,
                 titre="",
             )
@@ -165,9 +166,9 @@ def sync_campagne(
 
     return campagne
 
-@router.patch('/cours/{cours_id}/changes/approve', response_model=ApprovalResponse)
-def approve_course(cours_id: int, session: SessionDep):
-    cours = session.exec(select(Cours).where(Cours.id == cours_id)).first()
+@router.patch('/{trimestre}/{sigle}/changes/approve', response_model=ApprovalResponse)
+def approve_course(trimestre: int, sigle: str, session: SessionDep):
+    cours = session.exec(select(Cours).where(Cours.trimestre == trimestre and Cours.sigle == sigle)).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")
@@ -185,11 +186,8 @@ def approve_course(cours_id: int, session: SessionDep):
     
     session.commit()
     
-    assert cours.id
-
     return ApprovalResponse(
-        id=cours.id,
-        entity_type='cours',
+        entity=cours.model_dump(),
         change=approved_change,
         approved=True
     )
@@ -221,11 +219,8 @@ def approve_seance(seance_id: int, session: SessionDep):
 
     session.commit()
     
-    assert seance.id
-
     return ApprovalResponse(
-        id=seance.id,
-        entity_type='cours',
+        entity=seance.model_dump(),
         change=approved_change,
         approved=True
     )
@@ -248,11 +243,8 @@ def approve_activite(activite_id: int, session: SessionDep):
 
     session.commit()
     
-    assert activite.id
-
     return ApprovalResponse(
-        id=activite.id,
-        entity_type='cours',
+        entity=activite.model_dump(),
         change=approved_change,
         approved=True
     )

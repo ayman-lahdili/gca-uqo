@@ -176,7 +176,8 @@ class UQOHoraireService:
 
     def __init__(self, trimestre) -> None:
         self.url = 'https://etudier.uqo.ca/activites/recherche-horaire-resultats-ajax'
-        self.horaire = self.get_horaire(trimestre)
+        self.trimestre = trimestre
+        self.horaire = self.get_horaire(self.trimestre)
 
     def get_horaire(self, trimestre: int):
         params = {
@@ -202,6 +203,7 @@ class UQOHoraireService:
         """Parse a course dictionary into a Cours object."""
         return Cours(
             sigle=cours['SigCrs'],
+            trimestre=int(cours['CdTrimestreAct']),
             titre=cours['TitreCrs'],
             cycle=int(cours['CdCyc']),
             change={'change_type': ChangeType.UNCHANGED, 'value': {}},
@@ -210,6 +212,8 @@ class UQOHoraireService:
                     campus=_parse_campus(seance["LblRegrLieuEnsei"]),
                     groupe=seance["Gr"],
                     change={'change_type': ChangeType.UNCHANGED, 'value': {}},
+                    sigle=cours['SigCrs'],
+                    trimestre=int(cours['CdTrimestreAct']),
                     activite=[
                         Activite(
                             type=ActiviteType(activite["LblDescAct"]),
