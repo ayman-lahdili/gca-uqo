@@ -50,6 +50,11 @@ class Seance(SQLModel, table=True):
 
     activite: list["Activite"] = Relationship(back_populates="seance")
 
+class ActiviteCandidature(SQLModel, table=True):
+    id_activite: int = Field(foreign_key="activite.id", primary_key=True)
+    id_candidature: int = Field(foreign_key="candidature.id", primary_key=True)
+    note: Note = Field(default=Note.non_specifie)
+
 class Activite(SQLModel, table=True):
     __table_args__ = (
         ForeignKeyConstraint(
@@ -70,12 +75,16 @@ class Activite(SQLModel, table=True):
     hr_fin: int
     date_debut: datetime
     date_fin: datetime
+    nombre_seance: int = 0
 
     change: Dict = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
     seance: Seance = Relationship(back_populates="activite")
 
-    responsable: list["Candidature"] = Relationship(back_populates="activite")
+    responsable: list["Candidature"] = Relationship(
+        back_populates="activite",
+        link_model=ActiviteCandidature
+    )
 
 class Etudiant(SQLModel, table=True):
     id: Optional[int] | None = Field(default=None, primary_key=True)
@@ -100,14 +109,16 @@ class Candidature(SQLModel, table=True):
 
     id: Optional[int] | None = Field(default=None, primary_key=True)
     id_etudiant: int = Field(foreign_key="etudiant.id")
-    id_activite: int | None = Field(default=None, foreign_key="activite.id")
+    # id_activite: int | None = Field(default=None, foreign_key="activite.id")
     note: Note = Field(default=Note.non_specifie)
 
     cours: Cours = Relationship(back_populates="candidature")
 
     etudiant: Etudiant = Relationship(back_populates="candidature")
-    activite: Activite = Relationship(back_populates="responsable")
-
+    activite: list["Activite"] = Relationship(
+        back_populates="responsable",
+        link_model=ActiviteCandidature
+    )
     sigle: str
     trimestre: int
 

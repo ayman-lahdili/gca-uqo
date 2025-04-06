@@ -6,6 +6,7 @@ from sqlmodel import func, select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep
+from app.schemas.read import EtudiantFullRead
 from app.models import Campagne, Cours, CampagneStatus, Etudiant, Candidature, Campus
 from app.schemas.enums import Note
 
@@ -22,7 +23,7 @@ class CandidaturePayload(BaseModel):
     email: str = ""
     courses: List[dict] | None = None  # Each dict contains 'sigle', 'titre', and 'score'
 
-@router.post("/")
+@router.post("/", response_model=EtudiantFullRead)
 def create_candidature(payload: CandidaturePayload, session: SessionDep):
     # Validate if the student already exists
     student = session.exec(
@@ -43,7 +44,6 @@ def create_candidature(payload: CandidaturePayload, session: SessionDep):
         )
         session.add(student)
         session.commit()
-        session.refresh(student)
     else:
         raise HTTPException(
             status_code=400,
@@ -71,44 +71,16 @@ def create_candidature(payload: CandidaturePayload, session: SessionDep):
                 raise HTTPException(status_code=400, detail="Invalid note value")
             
             session.add(candidature)
+        session.commit()
 
-    session.commit()
-    return {"message": "Candidature created successfully."}
+    session.refresh(student)
+    return student
 
-@router.get("/")
+@router.get("/", response_model=list[EtudiantFullRead])
 def get_candidatures(trimestre: int, session: SessionDep):
-    # Query students and their candidatures for the given trimestre
-    students = session.exec(
-        select(Etudiant).where(Etudiant.trimestre == trimestre)
-    ).all()
+    students = session.exec(select(Etudiant).where(Etudiant.trimestre == trimestre)).all()
 
-    response = []
-    for student in students:
-        candidatures = session.exec(
-            select(Candidature).where(Candidature.id_etudiant == student.id)
-        ).all()
-
-        response.append({
-            "id": student.id,
-            "email": student.email,
-            "code_permanent": student.code_permanent,
-            "nom": student.nom,
-            "prenom": student.prenom,
-            "campus": student.campus.value,
-            "cycle": student.cycle,
-            "programme": student.programme,
-            "trimestre": student.trimestre,
-            "candidature": [
-                {
-                    "id": candidature.id,
-                    "note": candidature.note.value,
-                    "sigle": candidature.sigle,
-                }
-                for candidature in candidatures
-            ],
-        })
-
-    return response
+    return students
 
 @router.put("/{student_id}")
 def update_student(student_id: int, payload: CandidaturePayload, session: SessionDep):

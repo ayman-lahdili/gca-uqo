@@ -1,13 +1,13 @@
 from typing import Any, List, Dict
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select
+from sqlmodel import select, func
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig
-from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteRead
+from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType
+from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteFullRead
 
 from app.core.diffs import CoursDiffer
 
@@ -32,8 +32,9 @@ class ApprovalResponse(BaseModel):
     change: ChangeInfo
     approved: bool
 
-class AssigneStudentRequest(BaseModel):
-    candidatures: List[str]
+class ActiviteUpdateRequest(BaseModel):
+    candidatures: List[str] = []
+    nombre_seance: int | None = None
 
 @router.post("/", response_model=CampagneFullRead)
 def create_campagne(
@@ -72,10 +73,46 @@ def create_campagne(
 @router.get("/", response_model=List[CampagneRead])
 def get_campagnes(session: SessionDep) -> Any:
     campagnes = session.exec(select(Campagne)).all()
-    
+
     result = []
     for campagne in campagnes:
+        configs = CampagneConfig(**campagne.config)
         # Create a CampagneRead with computed stats
+
+        # Cout total
+        cout_total = 0
+        total_assistant_par_cycle = [set(), set(), set()]
+
+        campagne_candidatures = session.exec(select(Candidature).where(Candidature.trimestre == campagne.trimestre)).all()
+        for candidature in campagne_candidatures:
+            contrat = 0
+            etudiants_set: set[str] = set()
+            for activite in candidature.activite:
+                if activite and activite.type != ActiviteType.COURS:
+                    etudiant = candidature.etudiant
+                    activite_heure = configs.activite_heure[activite.type]
+                    taux_horaire = configs.echelle_salariale[etudiant.cycle-1]
+                    temps_paye_par_seance = activite_heure.preparation + activite_heure.travail if etudiant.code_permanent in etudiants_set else activite_heure.travail
+                    contrat = taux_horaire * temps_paye_par_seance * activite.nombre_seance
+                    if etudiant.code_permanent not in etudiants_set:
+                        total_assistant_par_cycle[etudiant.cycle-1].add(etudiant.code_permanent)
+                    etudiants_set.add(etudiant.code_permanent)
+
+                cout_total += contrat
+
+        # Distribution des sceances
+        activite_td = session.exec(select(Activite).where(Activite.type == ActiviteType.TD and Activite.trimestre == campagne.trimestre)).all()
+        nbr_td_total = sum([activite.nombre_seance for activite in activite_td])
+
+        activite_tp = session.exec(select(Activite).where(Activite.type == ActiviteType.TP and Activite.trimestre == campagne.trimestre)).all()
+        nbr_tp_total = sum([activite.nombre_seance for activite in activite_tp])
+
+        # Distribution des candidats
+        etudiant = session.exec(select(Etudiant.cycle).where(Etudiant.trimestre == campagne.trimestre)).all()
+        nbr_candidature_cycle1 = etudiant.count(1)
+        nbr_candidature_cycle2 = etudiant.count(2)
+        nbr_candidature_cycle3 = etudiant.count(3)
+
         campagne_dict = {
             "id": campagne.id,
             "trimestre": campagne.trimestre,
@@ -83,8 +120,16 @@ def get_campagnes(session: SessionDep) -> Any:
             "config": campagne.config,
             "cours": campagne.cours,
             "stats": {
+                "cout_total": float(f'{cout_total:.2f}'),
                 "nb_cours": len(campagne.cours),
-                # Add other stats here
+                "nbr_td_total": nbr_td_total,
+                "nbr_tp_total": nbr_tp_total,
+                "nbr_candidature_cycle1": nbr_candidature_cycle1,
+                "nbr_candidature_cycle2": nbr_candidature_cycle2,
+                "nbr_candidature_cycle3": nbr_candidature_cycle3,
+                "nbr_assistant_cycle1": len(total_assistant_par_cycle[0]),
+                "nbr_assistant_cycle2": len(total_assistant_par_cycle[1]),
+                "nbr_assistant_cycle3": len(total_assistant_par_cycle[2]),
             }
         }
         result.append(CampagneRead(**campagne_dict))
@@ -268,24 +313,34 @@ def approve_activite(activite_id: int, session: SessionDep):
         approved=True
     )
 
-@router.put('/activite/{activite_id}/assign', response_model=ActiviteRead)
-def assign_student(payload: AssigneStudentRequest, activite_id, session: SessionDep):
+@router.put('/activite/{activite_id}', response_model=ActiviteFullRead)
+def modify_activity(payload: ActiviteUpdateRequest, activite_id, session: SessionDep):
     activite = session.exec(select(Activite).where(Activite.id == activite_id)).first()
 
     if not activite:
         raise HTTPException(status_code=404, detail="Activite not found")
     
-    for candidature_id in payload.candidatures:
-        candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
+    if payload.candidatures:
+        # Reset candidature
+        activite.responsable = []
+        session.add(activite)
+        session.flush()
+        
+        # Assign new list from payload
+        for candidature_id in payload.candidatures:
+            candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
 
-        if not candidature:
-            print('Candidature not found')
-            continue
-            
-        candidature.activite = activite
+            if not candidature:
+                print('Candidature not found')
+                continue
+                
+            activite.responsable.append(candidature)
 
-        session.add(candidature)
-    
+            session.add(activite)
+    if payload.nombre_seance:
+        activite.nombre_seance = payload.nombre_seance
+        session.add(activite)
+
     session.commit()
     session.refresh(activite, attribute_names=['responsable'])
 

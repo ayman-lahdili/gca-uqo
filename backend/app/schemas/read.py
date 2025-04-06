@@ -14,6 +14,9 @@ class EtudiantRead(SQLModel):
     programme: str
     trimestre: int
 
+class EtudiantFullRead(EtudiantRead):
+    candidature: list["CandidatureReadNoResponsable"]
+
 class ActiviteRead(SQLModel):
     id: int
     type: ActiviteType | None = None
@@ -24,6 +27,8 @@ class ActiviteRead(SQLModel):
     date_debut: datetime
     date_fin: datetime
     change: Dict
+
+class ActiviteFullRead(ActiviteRead):
     responsable: List["CandidatureRead"]
 
 class SeanceRead(SQLModel):
@@ -31,7 +36,7 @@ class SeanceRead(SQLModel):
     sigle: str
     groupe: str
     campus: List[Campus]
-    activite: List[ActiviteRead] = []
+    activite: List[ActiviteFullRead] = []
     change: Dict
     ressource: list[Dict[str, str | None]]
 
@@ -44,11 +49,16 @@ class CoursRead(SQLModel):
 
 class CandidatureRead(SQLModel):
     id_etudiant: int
-    id_activite: Optional[int]
     note: Note
     sigle: str
     trimestre: int
     etudiant: EtudiantRead
+
+class CandidatureFullRead(CandidatureRead):
+    activite: list[ActiviteFullRead]
+
+class CandidatureReadNoResponsable(CandidatureRead):
+    activite: list[ActiviteRead]
 
 class CoursFullRead(CoursRead):
     seance: List[SeanceRead] = []
