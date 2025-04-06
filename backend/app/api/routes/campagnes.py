@@ -249,3 +249,6 @@ def approve_activite(activite_id: int, session: SessionDep):
         approved=True
     )
 
+@router.put('/act')
+def assigne_student():
+    pass

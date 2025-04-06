@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel
 from typing import List, Optional, Dict
+from datetime import datetime
 from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus, Note
 
 class EtudiantRead(SQLModel):
@@ -20,6 +21,8 @@ class ActiviteRead(SQLModel):
     jour: int
     hr_debut: int
     hr_fin: int
+    date_debut: datetime
+    date_fin: datetime
     change: Dict
     responsable: List[EtudiantRead]
 

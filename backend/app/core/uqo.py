@@ -1,6 +1,7 @@
 import requests
 import re
 import json
+from datetime import datetime
 from bs4 import BeautifulSoup
 import os
 
@@ -224,6 +225,8 @@ class UQOHoraireService:
                             jour=_parse_jour(activite["JourSem"]),
                             hr_debut=int(activite["HrsDHor"]),
                             hr_fin=int(activite["HrsFHor"]),
+                            date_debut=datetime.strptime(activite["DateDHor"], "%Y-%m-%dT%H:%M:%S"),
+                            date_fin=datetime.strptime(activite["DateFHor"], "%Y-%m-%dT%H:%M:%S"),
                             change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                         )
                         for activite in seance["CollActCrsHor"]

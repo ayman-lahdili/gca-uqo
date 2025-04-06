@@ -62,7 +62,7 @@ class CoursDiffer:
         
     def _compare_activities(self, old_activities: List[Activite], new_activities: List[Activite]):
         def get_activity_key(act: Activite):
-            return (act.type, act.mode, act.jour, act.hr_debut, act.hr_fin)
+            return (act.type, act.mode, act.jour, act.hr_debut, act.hr_fin, act.date_debut, act.date_fin)
 
         old_acts = {get_activity_key(act): act for act in old_activities}
         new_acts = {get_activity_key(act): act for act in new_activities}

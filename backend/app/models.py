@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict
+from datetime import datetime
 
-from sqlmodel import Field, SQLModel, Column, JSON, Relationship
+from sqlmodel import Field, SQLModel, Column, JSON, Relationship, DATETIME
 from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import ForeignKeyConstraint
@@ -64,6 +65,9 @@ class Activite(SQLModel, table=True):
     jour: int
     hr_debut: int
     hr_fin: int
+    date_debut: datetime
+    date_fin: datetime
+
     change: Dict = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
     seance: Seance = Relationship(back_populates="activite")
