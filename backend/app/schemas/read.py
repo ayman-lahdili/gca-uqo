@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel
 from typing import List, Optional, Dict
 from datetime import datetime
-from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus, Note
+from app.schemas.enums import ActiviteType, ActiviteMode, Campus, CoursStatus, CampagneStatus, Note, CampagneConfig
 
 class EtudiantRead(SQLModel):
     id: int
@@ -59,12 +59,12 @@ class CampagneFullRead(SQLModel):
     id: int
     trimestre: int
     status: CampagneStatus
-    echelle_salariale: list[float] | None
+    config: CampagneConfig
     cours: List[CoursFullRead] = []
 
 class CampagneRead(SQLModel):
     id: int
     trimestre: int
     status: CampagneStatus
-    echelle_salariale: list[float] | None = None
+    config: CampagneConfig
     cours: List[CoursRead] = []

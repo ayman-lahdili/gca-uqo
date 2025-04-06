@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from app.schemas.enums import CoursStatus, ChangeType
+from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig
 from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteRead
 
 from app.core.diffs import CoursDiffer
@@ -15,11 +15,11 @@ router = APIRouter(prefix="/campagne", tags=["campagne"])
 
 class CampagneCreateRequest(BaseModel):
     trimestre: int
-    echelle_salariale: List[float] | None = None
+    config: Dict[str, Any]
     sigles: List[str]
 
 class CampagneUpdateRequest(BaseModel):
-    echelle_salariale: List[float] | None = None
+    config: Dict[str, Any] | None = None
     status: str | None = None
     sigles: List[str] | None = None
 
@@ -47,7 +47,8 @@ def create_campagne(
     # Create the Campagne
     campagne = Campagne(
         trimestre=payload.trimestre,
-        echelle_salariale=payload.echelle_salariale or [18.85, 24.49, 26.48],
+        config=CampagneConfig(**payload.config).model_dump()
+        # echelle_salariale=payload.echelle_salariale or [18.85, 24.49, 26.48],
     )
     session.add(campagne)
     session.commit()
@@ -97,8 +98,8 @@ def update_campagne(
         raise HTTPException(status_code=404, detail="Campagne not found")
 
     # Update Campagne fields
-    if payload.echelle_salariale is not None:
-        campagne.echelle_salariale = payload.echelle_salariale
+    if payload.config is not None:
+        campagne.config = CampagneConfig(**payload.config).model_dump()
     if payload.status is not None:
         try:
             campagne.status = CampagneStatus(payload.status)

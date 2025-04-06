@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Literal
+from pydantic import BaseModel
+from typing import Literal, Dict
 
 class ChangeType(str, Enum):
     ADDED = "added"
@@ -40,3 +41,18 @@ class Note(str, Enum):
     non_specifie = 'non-specife'
 
 JourSemaine = Literal["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+
+class ActiviteConfig(BaseModel):
+    preparation: float
+    travail: float
+
+class CampagneConfig(BaseModel):
+    echelle_salariale: list[float] = [18.85, 24.49, 26.48]
+    activite_heure: Dict[ActiviteType, ActiviteConfig] = {
+        ActiviteType.TD: ActiviteConfig(preparation=1, travail=2),
+        ActiviteType.TP: ActiviteConfig(preparation=2, travail=3),
+    }
+
+if __name__ == '__main__':
+    config = CampagneConfig().model_dump_json()
+    print(config)

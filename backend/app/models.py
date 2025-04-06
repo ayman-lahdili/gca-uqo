@@ -2,7 +2,7 @@ from typing import Optional, Any, Dict
 from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship, DATETIME
-from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType
+from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType, CampagneConfig
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy import ForeignKeyConstraint
 
@@ -10,7 +10,8 @@ class Campagne(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     trimestre: int = Field(index=True)
     status: CampagneStatus = Field(default=CampagneStatus.en_cours)
-    echelle_salariale: list[float] | None = Field(default=[18.85, 24.49, 26.48], sa_column=Column(JSON))
+    config: CampagneConfig = Field(default={}, sa_column=Column(MutableDict.as_mutable(JSON)))
+    # echelle_salariale: list[float] | None = Field(default=[18.85, 24.49, 26.48], sa_column=Column(MutableDict.as_mutable(JSON)))
 
     cours: list["Cours"] = Relationship(back_populates="campagne")
 
