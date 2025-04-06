@@ -68,3 +68,4 @@ class CampagneRead(SQLModel):
     status: CampagneStatus
     config: CampagneConfig
     cours: List[CoursRead] = []
+    stats: Dict[str, float]

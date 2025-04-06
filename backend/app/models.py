@@ -10,7 +10,7 @@ class Campagne(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     trimestre: int = Field(index=True)
     status: CampagneStatus = Field(default=CampagneStatus.en_cours)
-    config: CampagneConfig = Field(default={}, sa_column=Column(MutableDict.as_mutable(JSON)))
+    config: Dict[str, Any] = Field(default={}, sa_column=Column(MutableDict.as_mutable(JSON)))
     # echelle_salariale: list[float] | None = Field(default=[18.85, 24.49, 26.48], sa_column=Column(MutableDict.as_mutable(JSON)))
 
     cours: list["Cours"] = Relationship(back_populates="campagne")

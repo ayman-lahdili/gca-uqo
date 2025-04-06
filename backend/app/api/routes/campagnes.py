@@ -72,8 +72,24 @@ def create_campagne(
 @router.get("/", response_model=List[CampagneRead])
 def get_campagnes(session: SessionDep) -> Any:
     campagnes = session.exec(select(Campagne)).all()
-
-    return campagnes
+    
+    result = []
+    for campagne in campagnes:
+        # Create a CampagneRead with computed stats
+        campagne_dict = {
+            "id": campagne.id,
+            "trimestre": campagne.trimestre,
+            "status": campagne.status,
+            "config": campagne.config,
+            "cours": campagne.cours,
+            "stats": {
+                "nb_cours": len(campagne.cours),
+                # Add other stats here
+            }
+        }
+        result.append(CampagneRead(**campagne_dict))
+    
+    return result
 
 @router.get("/{trimestre}", response_model=CampagneFullRead)
 def get_campagne_by_trimestre(
