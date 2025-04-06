@@ -1,8 +1,7 @@
 from typing import Optional, Any, Dict
 
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship
-from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus
-from app.schemas.change import ChangeType
+from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType
 from sqlalchemy.ext.mutable import MutableDict
 
 class Campagne(SQLModel, table=True):

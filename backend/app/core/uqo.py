@@ -2,8 +2,7 @@ import requests
 import re
 import json
 from bs4 import BeautifulSoup
-from bs4.element import Tag
-import os # Import os for file path handling
+import os
 
 from typing import List, Literal, Dict, Any
 

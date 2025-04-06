@@ -1,21 +1,13 @@
-from app.models import Cours, Activite, Seance
 from dataclasses import dataclass, asdict
-from pydantic import BaseModel
-from typing import Any, List, Dict
-from enum import Enum
-from app.schemas.enums import ChangeType
-from app.schemas.read import CoursRead
+from typing import Any, List
 
-class DiffStatus(BaseModel):
-    added: List[Any] = []
-    removed: List[Any] = []
-    modified: List[Any] = []
+from app.models import Cours, Activite, Seance
+from app.schemas.enums import ChangeType
 
 @dataclass
 class SingleDiff:
     old: Any
     new: Any
-
 
 class CoursDiffer:
 

@@ -1,5 +1,4 @@
 from typing import Any, List, Dict
-from copy import deepcopy
 
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
