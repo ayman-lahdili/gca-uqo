@@ -1,15 +1,20 @@
 from app.models import Cours, Activite, Seance
+from dataclasses import dataclass, asdict
 from pydantic import BaseModel
 from typing import Any, List, Dict
 from enum import Enum
 from app.schemas.enums import ChangeType
-from app.schemas.change import SingleDiff, ActiviteDiff, SeanceDiff, CoursDiff, Change
 from app.schemas.read import CoursRead
 
 class DiffStatus(BaseModel):
     added: List[Any] = []
     removed: List[Any] = []
     modified: List[Any] = []
+
+@dataclass
+class SingleDiff:
+    old: Any
+    new: Any
 
 
 class CoursDiffer:
@@ -25,48 +30,46 @@ class CoursDiffer:
         return self.old
     
     def _compare_basic_attributes(self):
-        self.old.change = Change(
-            value=CoursDiff(
-                sigle=SingleDiff(old=self.old.sigle, new=self.new.sigle),
-                titre=SingleDiff(old=self.old.titre, new=self.new.titre),
-                cycle=SingleDiff(old=self.old.cycle, new=self.new.cycle)
-            )
-        )
+        for field in ['sigle', 'titre', 'cycle']:
+            old_value, new_value = getattr(self.old, field), getattr(self.new, field)
+            if old_value != new_value:
+                self.old.change['change_type'] = ChangeType.MODIFIED
+                self.old.change['value'][field] = asdict(SingleDiff(old=old_value, new=new_value))
+                print('TITRE IS DIFF', self.old.change['value'][field], new_value)
     
     def _compare_seances(self):
-        diff_status = DiffStatus()
 
         old_seances = {seance.groupe: seance for seance in self.old.seance}
         new_seances = {seance.groupe: seance for seance in self.new.seance}
 
         for groupe, old_seance in old_seances.items():
+            old_seance.change['change_type'] = ChangeType.UNCHANGED
+            old_seance.change['value'] = {}
+        
             if groupe not in new_seances:
-                old_seance.change.change_type = ChangeType.REMOVED
-                diff_status.removed.append(old_seance)
+                old_seance.change["change_type"] = ChangeType.REMOVED
 
         for groupe, new_seance in new_seances.items():
             if groupe not in old_seances:
-                new_seance.change.change_type = ChangeType.ADDED
+                new_seance.change["change_type"] = ChangeType.ADDED
                 new_seance.cours = self.old
-                diff_status.added.append(new_seance)
             else:
                 old_seance = old_seances[groupe]
                 self._compare_single_seance(old_seance, new_seance)
         
     def _compare_single_seance(self, old_seance: Seance, new_seance: Seance):
-        old_seance.change = Change(
-            value=SeanceDiff(
-                campus=SingleDiff(old=old_seance.campus, new=new_seance.campus),
-                groupe=SingleDiff(old=old_seance.groupe, new=new_seance.groupe)
-            )
-        )
+        for field in ['groupe', 'campus']:
+            old_value, new_value = getattr(old_seance, field), getattr(new_seance, field)
+            if old_value == new_value:
+                old_seance.change[field] = None
+            else:
+                old_seance.change['change_type'] = ChangeType.MODIFIED
+                old_seance.change['value'][field] = asdict(SingleDiff(old=old_value, new=new_value))
 
         self._compare_activities(old_seance.activite, new_seance.activite)
 
         
     def _compare_activities(self, old_activities: List[Activite], new_activities: List[Activite]):
-        diff_status = DiffStatus()
-
         def get_activity_key(act: Activite):
             return (act.type, act.mode, act.jour, act.hr_debut, act.hr_fin)
 
@@ -75,12 +78,10 @@ class CoursDiffer:
 
         for key, act in old_acts.items():
             if key not in new_acts:
-                act.change.change_type = ChangeType.REMOVED
-                diff_status.removed.append(act)
+                act.change["change_type"] = ChangeType.REMOVED
 
         for key, act in new_acts.items():
             if key not in old_acts:
-                act.change.change_type = ChangeType.ADDED
+                act.change["change_type"] = ChangeType.ADDED
                 act.seance = old_activities[0].seance
-                diff_status.added.append(act)
 

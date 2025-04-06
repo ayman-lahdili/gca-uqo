@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 class ChangeType(str, Enum):
     ADDED = "added"
@@ -21,13 +22,13 @@ class Campus(str, Enum):
     non_specifie = 'non-specife'
 
 class ActiviteMode(str, Enum):
-    PRESENTIEL = "PRESENTIEL"
-    DISTANCIEL = "DISTANCIEL"
+    PRESENTIEL = "PRES"
+    DISTANCIEL = "NPRES"
 
 class ActiviteType(str, Enum):
-    TD = "TD"
-    TP = "TP"
-    COURS = "COURS"
+    TD = "Travaux dirigés"
+    TP = "Travaux pratiques"
+    COURS = "Cours régulier"
 
 class Note(str, Enum):
     A_p = "A+"
@@ -37,3 +38,5 @@ class Note(str, Enum):
     B = "B"
     B_m = "B-"
     non_specifie = 'non-specife'
+
+JourSemaine = Literal["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]

@@ -8,8 +8,7 @@ import os # Import os for file path handling
 from typing import List, Literal, Dict, Any
 
 from app.models import Cours, Activite, Seance
-from app.core.diffs import Change
-from app.schemas.enums import Campus, ActiviteType, ActiviteMode
+from app.schemas.enums import Campus, ActiviteType, ActiviteMode, JourSemaine, ChangeType
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -210,20 +209,20 @@ class UQOHoraireService:
             sigle=cours['SigCrs'],
             titre=cours['TitreCrs'],
             cycle=int(cours['CdCyc']),
-            change=Change(),
+            change={'change_type': ChangeType.UNCHANGED, 'value': {}},
             seance=[
                 Seance(
                     campus=_parse_campus(seance["LblRegrLieuEnsei"]),
                     groupe=seance["Gr"],
-                    change=Change(),
+                    change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                     activite=[
                         Activite(
-                            type=_parse_activite_type(activite["LblDescAct"]),
-                            mode=_parse_activite_mdoe(activite["CdModeEnsei"]),
+                            type=ActiviteType(activite["LblDescAct"]),
+                            mode=ActiviteMode(activite["CdModeEnsei"]),
                             jour=_parse_jour(activite["JourSem"]),
                             hr_debut=int(activite["HrsDHor"]),
                             hr_fin=int(activite["HrsFHor"]),
-                            change=Change()
+                            change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                         )
                         for activite in seance["CollActCrsHor"]
                     ]
@@ -233,14 +232,18 @@ class UQOHoraireService:
         )
 
 def _parse_campus(unparsed: str):
-    # if 'gatineau' in unparsed.lower():
-    return Campus.gat
+    return {
+        " Gatineau (Alexandre-Taché)": Campus.gat,
+        " St-Jérôme (Campus de St-Jérôme)": Campus.stj
+    }.get(unparsed, Campus.non_specifie)
 
-def _parse_activite_type(unparsed: str):
-    return ActiviteType.TD
-
-def _parse_activite_mdoe(unparsed: str):
-    return ActiviteMode.DISTANCIEL
-
-def _parse_jour(unparsed: str):
-    return 1
+def _parse_jour(unparsed: JourSemaine):
+    return {
+        "lundi": 1,
+        "mardi": 2,
+        "mercredi": 3,
+        "jeudi": 4,
+        "vendredi": 5,
+        "samedi": 6,
+        "dimanche": 7
+    }[unparsed]

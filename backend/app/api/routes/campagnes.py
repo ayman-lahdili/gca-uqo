@@ -146,7 +146,7 @@ def sync_campagne(
 
         old_cours = differ.compare()
 
-        print(old_cours)
+        print("CHANGES TO COURS", old_cours.change)
 
         session.add(old_cours)
     

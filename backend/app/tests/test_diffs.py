@@ -1,13 +1,12 @@
 import unittest
 import json
 from typing import Dict, Any
-from copy import deepcopy
+from copy import deepcopy, copy
 
 from app.core.uqo import UQOHoraireService
-from app.core.diffs import CoursDiffer, SingleDiff
-from app.models import Cours, Seance, Activite
-from app.schemas.enums import ChangeType
-from app.schemas.change import CoursDiff, ActiviteDiff, SeanceDiff
+from app.core.diffs import CoursDiffer
+from app.models import Cours
+from app.schemas.enums import ChangeType, ActiviteType, Campus
 
 class TestCoursDiffer(unittest.TestCase):
     @classmethod
@@ -46,13 +45,13 @@ class TestCoursDiffer(unittest.TestCase):
     
     def test_no_changes(self):
         """Test that identical courses show no differences."""
-        copy = deepcopy(self.base_course)
-        differ = CoursDiffer(self.base_course, copy)
+        dcopy = copy(self.base_course)
+        differ = CoursDiffer(self.base_course, dcopy)
         diffs = differ.compare()
 
         # No differences should be detected
-        self.assertEqual(diffs.change.change_type, ChangeType.UNCHANGED)
-        self.assertIsNone(diffs.change.value)
+        self.assertEqual(diffs.change["change_type"], ChangeType.UNCHANGED)
+        self.assertEqual(diffs.change["value"], {})
     
     def test_basic_attribute_changes(self):
         """Test changes to sigle, titre, and cycle."""
@@ -66,15 +65,17 @@ class TestCoursDiffer(unittest.TestCase):
         diffs = differ.compare()
         
         # Check basic attribute changes
-        self.assertEqual(diffs.change.value, CoursDiff(
-            sigle=SingleDiff(old='INF1573', new='MOD123'),
-            titre=SingleDiff(old='Programmation II', new='Modified Title'),
-            cycle=SingleDiff(old='1', new='2')
-        ))
+        self.assertEqual(diffs.change['value'], 
+            {
+                'sigle': {'old': 'INF1573', 'new':'MOD123'},
+                'titre': {'old': 'Programmation II', 'new': 'Modified Title'},
+                'cycle': {'old': 1, 'new': 2}
+            }
+        )
 
         # No seance changes expected
         for seance in diffs.seance:
-            self.assertEqual(seance.change.change_type, ChangeType.UNCHANGED)
+            self.assertEqual(seance.change['change_type'], ChangeType.UNCHANGED)
     
     def test_seance_added(self):
         """Test when a new seance is added."""
@@ -90,9 +91,9 @@ class TestCoursDiffer(unittest.TestCase):
 
         # Should detect one added seance
 
-        added_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.ADDED]
-        removed_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.REMOVED]
-        modified_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.MODIFIED]
+        added_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.ADDED]
+        removed_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.REMOVED]
+        modified_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.MODIFIED]
 
 
         self.assertEqual(1, len(added_seance))
@@ -112,9 +113,9 @@ class TestCoursDiffer(unittest.TestCase):
         diffs = differ.compare()
 
         # # Should detect one removed seance
-        added_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.ADDED]
-        removed_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.REMOVED]
-        modified_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.MODIFIED]
+        added_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.ADDED]
+        removed_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.REMOVED]
+        modified_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.MODIFIED]
 
         self.assertEqual(0, len(added_seance))
         self.assertEqual(1, len(removed_seance))
@@ -125,26 +126,27 @@ class TestCoursDiffer(unittest.TestCase):
     def test_seance_campus_changed(self):
         """Test when a seance's campus is modified."""
         modified = self.create_modified_course({
-            'LstActCrs.0.LblRegrLieuEnsei': 'New Campus Name'
+            'LstActCrs.0.LblRegrLieuEnsei': " St-Jérôme (Campus de St-Jérôme)"
         })
         
         differ = CoursDiffer(self.base_course, modified)
         diffs = differ.compare()
         
-        added_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.ADDED]
-        removed_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.REMOVED]
-        modified_seance = [seance for seance in diffs.seance if seance.change.change_type == ChangeType.MODIFIED]
+        added_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.ADDED]
+        removed_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.REMOVED]
+        modified_seance = [seance for seance in diffs.seance if seance.change['change_type'] == ChangeType.MODIFIED]
 
         self.assertEqual(0, len(added_seance))
         self.assertEqual(0, len(removed_seance))
         self.assertEqual(1, len(modified_seance))
 
-        # # Should detect one modified seance with campus change
+        # Should detect one modified seance with campus change
 
-        self.assertEqual(modified_seance[0].change.value, SeanceDiff(
-            groupe=None,
-            campus=SingleDiff(old=' Gatineau (Alexandre-Taché)', new='New Campus Name')
-        ))
+        self.assertEqual(modified_seance[0].change['value'], 
+            {
+                'campus': {'old': Campus.gat, 'new': Campus.stj}
+            }
+        )
     
     def test_activite_added(self):
         """Test when an activity is added to a seance."""
@@ -157,7 +159,7 @@ class TestCoursDiffer(unittest.TestCase):
             "HrsDHor": "1400",
             "HrsFHor": "1600",
             "JourSem": "mardi",
-            "LblDescAct": "New Activity",
+            "LblDescAct": "Travaux dirigés",
             "LblPrea": None,
             "NbrInscMax": 0,
             "NbrInscTot": 0,
@@ -181,19 +183,19 @@ class TestCoursDiffer(unittest.TestCase):
         
 
         # Should detect one modified seance with one added activity
-        added_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.ADDED]
-        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.REMOVED]
-        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.MODIFIED]
+        added_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.ADDED]
+        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.REMOVED]
+        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.MODIFIED]
 
         self.assertEqual(1, len(added_activite))
         self.assertEqual(0, len(removed_activite))
         self.assertEqual(0, len(modified_activite))
 
         added_activite[0]
-        self.assertEqual(added_activite[0].change.value, None)
-        self.assertEqual(added_activite[0].type, "New Activity")
-        self.assertEqual(added_activite[0].hr_debut, "1400")
-        self.assertEqual(added_activite[0].hr_fin, "1600")
+        self.assertEqual(added_activite[0].change['value'], {})
+        self.assertEqual(added_activite[0].type, ActiviteType.TD)
+        self.assertEqual(added_activite[0].hr_debut, 1400)
+        self.assertEqual(added_activite[0].hr_fin, 1600)
     
     def test_activite_removed(self):
         """Test when an activity is removed from a seance."""
@@ -208,9 +210,9 @@ class TestCoursDiffer(unittest.TestCase):
         print(diffs.seance[0].activite)
 
         # Should detect one modified seance with one removed activity
-        added_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.ADDED]
-        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.REMOVED]
-        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.MODIFIED]
+        added_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.ADDED]
+        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.REMOVED]
+        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.MODIFIED]
 
         self.assertEqual(0, len(added_activite))
         self.assertEqual(1, len(removed_activite))
@@ -230,9 +232,9 @@ class TestCoursDiffer(unittest.TestCase):
         print(diffs.seance[0].activite)
 
         # Should detect one removed activity and one added activity because we cannot know if it was removed or modified
-        added_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.ADDED]
-        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.REMOVED]
-        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change.change_type == ChangeType.MODIFIED]
+        added_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.ADDED]
+        removed_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.REMOVED]
+        modified_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.MODIFIED]
 
         self.assertEqual(1, len(added_activite))
         self.assertEqual(1, len(removed_activite))
@@ -241,13 +243,13 @@ class TestCoursDiffer(unittest.TestCase):
         # Note: Our current implementation treats any change as remove+add
         
         # # Verify the old and new values
-        self.assertEqual(removed_activite[0].hr_debut, "0830")
-        self.assertEqual(removed_activite[0].hr_fin, "1130")
-        self.assertEqual(removed_activite[0].jour, "mercredi")
+        self.assertEqual(removed_activite[0].hr_debut, 830)
+        self.assertEqual(removed_activite[0].hr_fin, 1130)
+        self.assertEqual(removed_activite[0].jour, 3)
         
-        self.assertEqual(added_activite[0].hr_debut, "0900")
-        self.assertEqual(added_activite[0].hr_fin, "1200")
-        self.assertEqual(added_activite[0].jour, "jeudi")
+        self.assertEqual(added_activite[0].hr_debut, 900)
+        self.assertEqual(added_activite[0].hr_fin, 1200)
+        self.assertEqual(added_activite[0].jour, 4)
 
 if __name__ == '__main__':
     unittest.main()
