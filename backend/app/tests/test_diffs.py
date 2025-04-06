@@ -207,8 +207,6 @@ class TestCoursDiffer(unittest.TestCase):
         differ = CoursDiffer(self.base_course, modified)
         diffs = differ.compare()
         
-        print(diffs.seance[0].activite)
-
         # Should detect one modified seance with one removed activity
         added_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.ADDED]
         removed_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.REMOVED]
@@ -229,8 +227,6 @@ class TestCoursDiffer(unittest.TestCase):
         differ = CoursDiffer(self.base_course, modified)
         diffs = differ.compare()
         
-        print(diffs.seance[0].activite)
-
         # Should detect one removed activity and one added activity because we cannot know if it was removed or modified
         added_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.ADDED]
         removed_activite = [activite for activite in diffs.seance[0].activite if activite.change['change_type'] == ChangeType.REMOVED]

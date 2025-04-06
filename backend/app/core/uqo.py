@@ -130,13 +130,9 @@ class UQOCoursService:
             print("Could not find courses div in HTML")
             return []
         
-        # print(courses_div)
-
         # Find all course items (each row contains a course)
         course_items = courses_div.find_all('div', class_='row')
         
-        # print(course_items)
-
         # Skip the header row
         course_items = [item for item in course_items if 'row-entete' not in item.get('class', [])]
         

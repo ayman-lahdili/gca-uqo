@@ -1,12 +1,13 @@
-from typing import Any, List, Sequence, Tuple
+from typing import Any, List, Dict
+from copy import deepcopy
 
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
-from app.models import Campagne, Cours
-from app.schemas.enums import CoursStatus
+from app.models import Campagne, Cours, Seance, Activite
+from app.schemas.enums import CoursStatus, ChangeType
 from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus
 
 from app.core.diffs import CoursDiffer
@@ -17,6 +18,22 @@ class CampagneCreateRequest(BaseModel):
     trimestre: int
     echelle_salariale: List[float] | None = None
     sigles: List[str]
+
+class CampagneUpdateRequest(BaseModel):
+    echelle_salariale: List[float] | None = None
+    status: str | None = None
+    sigles: List[str] | None = None
+
+
+class ChangeInfo(BaseModel):
+    change_type: ChangeType
+    value: Dict[str, Any]
+
+class ApprovalResponse(BaseModel):
+    id: int
+    entity_type: str
+    change: ChangeInfo
+    approved: bool
 
 @router.post("/", response_model=CampagneFullRead)
 def create_campagne(
@@ -66,11 +83,6 @@ def get_campagne_by_trimestre(
         raise HTTPException(status_code=404, detail="Campagne not found")
     
     return campagne
-
-class CampagneUpdateRequest(BaseModel):
-    echelle_salariale: List[float] | None = None
-    status: str | None = None
-    sigles: List[str] | None = None
 
 @router.put("/{trimestre}", response_model=CampagneFullRead)
 def update_campagne(
@@ -146,8 +158,6 @@ def sync_campagne(
 
         old_cours = differ.compare()
 
-        print("CHANGES TO COURS", old_cours.change)
-
         session.add(old_cours)
     
     session.commit()
@@ -155,3 +165,96 @@ def sync_campagne(
     session.refresh(campagne, attribute_names=['cours'])
 
     return campagne
+
+@router.patch('/cours/{cours_id}/changes/approve', response_model=ApprovalResponse)
+def approve_course(cours_id: int, session: SessionDep):
+    cours = session.exec(select(Cours).where(Cours.id == cours_id)).first()
+
+    if not cours:
+        raise HTTPException(status_code=404, detail="Cours not found")
+
+    approved_change = ChangeInfo(**cours.change)
+
+    if approved_change.change_type == ChangeType.MODIFIED:
+        for field, value in approved_change.value.items():
+            setattr(cours, field, value['new'])
+
+        cours.change['change_type'] = ChangeType.UNCHANGED
+        cours.change['value'] = {}
+
+        session.add(cours)
+    
+    session.commit()
+    
+    assert cours.id
+
+    return ApprovalResponse(
+        id=cours.id,
+        entity_type='cours',
+        change=approved_change,
+        approved=True
+    )
+
+@router.patch('/seance/{seance_id}/changes/approve', response_model=ApprovalResponse)
+def approve_seance(seance_id: int, session: SessionDep):
+    seance = session.exec(select(Seance).where(Seance.id == seance_id)).first()
+
+    if not seance:
+        raise HTTPException(status_code=404, detail="Seance not found")
+
+    approved_change = ChangeInfo(**seance.change)
+
+    if approved_change.change_type == ChangeType.MODIFIED:
+        for field, value in approved_change.value.items():
+            setattr(seance, field, value['new'])
+
+        seance.change['change_type'] = ChangeType.UNCHANGED
+        seance.change['value'] = {}
+
+        session.add(seance)
+    
+    if approved_change.change_type == ChangeType.ADDED:
+        seance.change['change_type'] = ChangeType.UNCHANGED
+        seance.change['value'] = {}
+    
+    if approved_change.change_type == ChangeType.REMOVED:
+        session.delete(seance)
+
+    session.commit()
+    
+    assert seance.id
+
+    return ApprovalResponse(
+        id=seance.id,
+        entity_type='cours',
+        change=approved_change,
+        approved=True
+    )
+
+@router.patch('/activite/{activite_id}/changes/approve', response_model=ApprovalResponse)
+def approve_activite(activite_id: int, session: SessionDep):
+    activite = session.exec(select(Activite).where(Activite.id == activite_id)).first()
+
+    if not activite:
+        raise HTTPException(status_code=404, detail="Activite not found")
+
+    approved_change = ChangeInfo(**activite.change)
+    
+    if approved_change.change_type == ChangeType.ADDED:
+        activite.change['change_type'] = ChangeType.UNCHANGED
+        activite.change['value'] = {}
+    
+    if approved_change.change_type == ChangeType.REMOVED:
+        session.delete(activite)
+
+    session.commit()
+    
+    assert activite.id
+
+    return ApprovalResponse(
+        id=activite.id,
+        entity_type='cours',
+        change=approved_change,
+        approved=True
+    )
+

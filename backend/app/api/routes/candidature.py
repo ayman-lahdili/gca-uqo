@@ -151,8 +151,6 @@ def update_student(student_id: int, payload: CandidaturePayload, session: Sessio
         incoming_sigles = {course["sigle"] for course in payload.courses}
 
         # Add or update candidatures
-        print("ADAS", payload.courses)
-
         for course in payload.courses:
             if course["sigle"] in existing_sigles:
                 # Update existing candidature

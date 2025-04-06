@@ -35,7 +35,6 @@ class CoursDiffer:
             if old_value != new_value:
                 self.old.change['change_type'] = ChangeType.MODIFIED
                 self.old.change['value'][field] = asdict(SingleDiff(old=old_value, new=new_value))
-                print('TITRE IS DIFF', self.old.change['value'][field], new_value)
     
     def _compare_seances(self):
 
