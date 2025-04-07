@@ -61,15 +61,15 @@ export default {
             const documentStyle = getComputedStyle(document.documentElement);
             const sortedCampagnes = [...this.campagnes].sort((a, b) => a.trimestre - b.trimestre);
             const labels = sortedCampagnes.map((campagne) => this.formatTrimestre(campagne.trimestre));
-            const cycle1Data = sortedCampagnes.map((campagne) => campagne.nbr_candidature_cycle1);
-            const cycle2Data = sortedCampagnes.map((campagne) => campagne.nbr_candidature_cycle2);
-            const cycle3Data = sortedCampagnes.map((campagne) => campagne.nbr_candidature_cycle3);
-            const totalCostData = sortedCampagnes.map((campagne) => campagne.cout_total);
-            const assistantCycle1Data = sortedCampagnes.map((campagne) => campagne.nbr_assistant_cycle1);
-            const assistantCycle2Data = sortedCampagnes.map((campagne) => campagne.nbr_assistant_cycle2);
-            const assistantCycle3Data = sortedCampagnes.map((campagne) => campagne.nbr_assistant_cycle3);
-            const totalTpData = sortedCampagnes.map((campagne) => campagne.nbr_tp_total);
-            const totalTdData = sortedCampagnes.map((campagne) => campagne.nbr_td_total);
+            const cycle1Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_candidature_cycle1);
+            const cycle2Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_candidature_cycle2);
+            const cycle3Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_candidature_cycle3);
+            const totalCostData = sortedCampagnes.map((campagne) => campagne.stats.cout_total);
+            const assistantCycle1Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_assistant_cycle1);
+            const assistantCycle2Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_assistant_cycle2);
+            const assistantCycle3Data = sortedCampagnes.map((campagne) => campagne.stats.nbr_assistant_cycle3);
+            const totalTpData = sortedCampagnes.map((campagne) => campagne.stats.nbr_tp_total);
+            const totalTdData = sortedCampagnes.map((campagne) => campagne.stats.nbr_td_total);
 
             return {
                 labels: labels,
@@ -157,15 +157,15 @@ export default {
                         assistantCycle3: 0
                     };
                 }
-                acc[year].cycle1 += campagne.nbr_candidature_cycle1;
-                acc[year].cycle2 += campagne.nbr_candidature_cycle2;
-                acc[year].cycle3 += campagne.nbr_candidature_cycle3;
-                acc[year].totalCost += campagne.cout_total;
-                acc[year].assistantCycle1 += campagne.nbr_assistant_cycle1;
-                acc[year].assistantCycle2 += campagne.nbr_assistant_cycle2;
-                acc[year].assistantCycle3 += campagne.nbr_assistant_cycle3;
-                acc[year].nbr_tp_total = campagne.nbr_tp_total;
-                acc[year].nbr_td_total = campagne.nbr_td_total;
+                acc[year].cycle1 += campagne.stats.nbr_candidature_cycle1;
+                acc[year].cycle2 += campagne.stats.nbr_candidature_cycle2;
+                acc[year].cycle3 += campagne.stats.nbr_candidature_cycle3;
+                acc[year].totalCost += campagne.stats.cout_total;
+                acc[year].assistantCycle1 += campagne.stats.nbr_assistant_cycle1;
+                acc[year].assistantCycle2 += campagne.stats.nbr_assistant_cycle2;
+                acc[year].assistantCycle3 += campagne.stats.nbr_assistant_cycle3;
+                acc[year].nbr_tp_total = campagne.stats.nbr_tp_total;
+                acc[year].nbr_td_total = campagne.stats.nbr_td_total;
 
                 return acc;
             }, {});

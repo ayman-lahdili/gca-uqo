@@ -13,10 +13,14 @@ from app.core.diffs import CoursDiffer
 
 router = APIRouter(prefix="/campagne", tags=["campagne"])
 
+class CampagneCoursRequestItem(BaseModel):
+    sigle: str
+    titre: str = ""
+
 class CampagneCreateRequest(BaseModel):
     trimestre: int
-    config: Dict[str, Any]
-    sigles: List[str]
+    config: Dict[str, Any] = {}
+    cours: List[CampagneCoursRequestItem]
 
 class CampagneUpdateRequest(BaseModel):
     config: Dict[str, Any] | None = None
@@ -55,13 +59,17 @@ def create_campagne(
     session.commit()
     session.refresh(campagne)
 
-    for sigle in set(payload.sigles):
+    processed_cours = set()
+    for cours in payload.cours:
+        if cours.sigle in processed_cours:
+            continue
         cours = Cours(
             campagne=campagne,
             trimestre=payload.trimestre,
-            sigle=sigle,
-            titre=""
+            sigle=cours.sigle,
+            titre=cours.titre
         )
+        processed_cours.add(cours.sigle)
         session.add(cours)
 
     session.commit()

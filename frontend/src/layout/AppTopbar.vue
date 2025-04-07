@@ -5,13 +5,7 @@ export default {
     data() {
         return {
             selectedTrimestre: null,
-            trimestre: [
-                { name: 'Hiver 2025', code: 'H2025' },
-                { name: 'Automne 2024', code: 'A2024' },
-                { name: 'Été 2024', code: 'E2024' },
-                { name: 'Hiver 2024', code: 'H2024' },
-                { name: 'Automne 2023', code: 'A2023' }
-            ]
+            trimestre: []
         };
     },
     setup() {
@@ -27,8 +21,27 @@ export default {
     mounted() {
         // Load persisted selection from localStorage
         const savedTrimestre = localStorage.getItem('selectedTrimestre');
+        const trimestreOptions = JSON.parse(localStorage.getItem('trimestreOptions'));
+        console.log('HEYY', savedTrimestre, trimestreOptions);
         if (savedTrimestre) {
-            this.selectedTrimestre = this.trimestre.find((t) => t.code === savedTrimestre);
+            this.selectedTrimestre = savedTrimestre;
+        }
+        if (trimestreOptions) {
+            this.trimestre = trimestreOptions;
+        }
+
+        // Watch for localStorage changes
+        window.addEventListener('storage', this.updateTrimestreOptions);
+    },
+    beforeUnmount() {
+        window.removeEventListener('storage', this.updateTrimestreOptions);
+    },
+    methods: {
+        updateTrimestreOptions() {
+            const trimestreOptions = JSON.parse(localStorage.getItem('trimestreOptions'));
+            if (trimestreOptions) {
+                this.trimestre = trimestreOptions;
+            }
         }
     },
     watch: {

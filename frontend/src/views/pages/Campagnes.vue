@@ -42,11 +42,9 @@ export default {
         async fetchCampagnes() {
             this.loading = true; // Set loading to true
             try {
-                const data = await CampagneService.getCampagnes();
-                this.campagnes = data.map((campagne) => ({
-                    ...campagne,
-                    cout_total: campagne.cours.length * campagne.salaire[0] // Example calculation
-                }));
+                const campagnes = await CampagneService.getCampagnes();
+                this.campagnes = campagnes;
+                localStorage.setItem('trimestreOptions', JSON.stringify(campagnes));
             } catch (error) {
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les campagnes', life: 3000 });
             } finally {
@@ -149,6 +147,9 @@ export default {
                 default:
                     break;
             }
+        },
+        formatCurrency(value) {
+            return value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
         }
     }
 };
@@ -198,7 +199,7 @@ export default {
                             </Column>
                             <Column field="cout_total" header="Coût total" :sortable="true" style="min-width: 8rem">
                                 <template #body="slotProps">
-                                    {{ slotProps.data.cout_total }}
+                                    {{ formatCurrency(slotProps.data.stats.cout_total) }}
                                 </template>
                             </Column>
                             <Column field="status" header="Statut" sortable style="min-width: 12rem">
