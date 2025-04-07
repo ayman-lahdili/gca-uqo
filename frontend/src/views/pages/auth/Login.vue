@@ -1,5 +1,6 @@
 <script>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { CampagneService } from '@/service/CampagneService';
 
 export default {
     components: {
@@ -14,13 +15,22 @@ export default {
         };
     },
     methods: {
-        handleSignIn() {
+        async handleSignIn() {
             if (this.email) {
                 // Store the email in localStorage
                 localStorage.setItem('email', this.email);
 
-                // Redirect to the homepage (or desired route)
-                this.$router.push('/');
+                let trimestres = await CampagneService.getListTrimestre();
+
+                console.log(trimestres.length, trimestres);
+
+                if (trimestres.length === 0) {
+                    this.$router.push('/premiere-visite');
+                } else {
+                    localStorage.setItem('trimestreOptions', JSON.stringify(trimestres));
+                    // Redirect to the homepage (or desired route)
+                    this.$router.push('/');
+                }
             } else {
                 console.error('Email is required!');
             }

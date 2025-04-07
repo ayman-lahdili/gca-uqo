@@ -1,4 +1,5 @@
 <script>
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CandidatService } from '@/service/CandidatService';
 import { UQOService } from '@/service/UQOService';
 import { FilterMatchMode } from '@primevue/core/api';
@@ -64,6 +65,21 @@ export default {
     },
     mounted() {
         this.fetchCandidatures();
+    },
+    computed: {
+        // Create a computed property to make the shared state reactive within this component
+        sharedValueFromGlobalState() {
+            return sharedSelectState.selectedValue;
+        }
+    },
+    watch: {
+        // Watch the computed property that tracks the shared state
+        sharedValueFromGlobalState(newValue, oldValue) {
+            console.log(`UnrelatedPageComponent detected change via watch: ${newValue}`);
+            // You can trigger actions here when the value changes, e.g., automatically fetch data
+            // this.fetchData();
+            console.log('GETTIME', localStorage.getItem('selectedTrimestre'));
+        }
     },
     methods: {
         async fetchCandidatures() {

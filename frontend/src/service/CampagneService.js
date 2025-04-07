@@ -19,5 +19,11 @@ export const CampagneService = {
     async updateCampagne(trimestre, payload) {
         const response = await apiClient.put(`/v1/campagne/${trimestre}`, payload);
         return response.data;
+    },
+
+    async getListTrimestre() {
+        let listTrimestre = await this.getCampagnes();
+        let res = listTrimestre.map((value) => value.trimestre);
+        return res;
     }
 };

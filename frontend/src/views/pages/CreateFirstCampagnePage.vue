@@ -119,6 +119,10 @@ export default {
 
             if (!result) {
                 console.error('ERRR');
+            } else {
+                console.log('asd', result);
+                localStorage.setItem('trimestreOptions', JSON.stringify([campagne.trimestre]));
+                this.$router.push('/');
             }
         },
         formatTrimestre(value) {

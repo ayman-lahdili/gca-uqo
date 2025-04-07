@@ -1,5 +1,6 @@
 <script>
 import { useLayout } from '@/layout/composables/layout';
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 
 export default {
     data() {
@@ -19,36 +20,30 @@ export default {
         };
     },
     mounted() {
-        // Load persisted selection from localStorage
-        const savedTrimestre = localStorage.getItem('selectedTrimestre');
-        const trimestreOptions = JSON.parse(localStorage.getItem('trimestreOptions'));
-        console.log('HEYY', savedTrimestre, trimestreOptions);
-        if (savedTrimestre) {
-            this.selectedTrimestre = savedTrimestre;
-        }
-        if (trimestreOptions) {
-            this.trimestre = trimestreOptions;
-        }
-
-        // Watch for localStorage changes
-        window.addEventListener('storage', this.updateTrimestreOptions);
-    },
-    beforeUnmount() {
-        window.removeEventListener('storage', this.updateTrimestreOptions);
+        this.trimestre = JSON.parse(localStorage.getItem('trimestreOptions'));
+        this.selectedTrimestre = sharedSelectState.selectedValue | this.trimestre[0];
+        sharedSelectState.setSelectedValue(this.selectedTrimestre);
     },
     methods: {
         updateTrimestreOptions() {
-            const trimestreOptions = JSON.parse(localStorage.getItem('trimestreOptions'));
-            if (trimestreOptions) {
-                this.trimestre = trimestreOptions;
-            }
-        }
-    },
-    watch: {
-        selectedTrimestre(newVal) {
-            console.log('asdasdsd', newVal);
-            if (newVal) {
-                localStorage.setItem('selectedTrimestre', newVal.code);
+            sharedSelectState.setSelectedValue(this.selectedTrimestre);
+            localStorage.setItem('selectedTrimestre', this.selectedTrimestre);
+            console.log(`SelectComponent emitted: ${this.selectedTrimestre}`);
+        },
+        formatTrimestre(value) {
+            value = value + '';
+            let season = value.charAt(4);
+            let year = value.substring(0, 4);
+
+            switch (season) {
+                case '1':
+                    return 'Hiver ' + year;
+                case '2':
+                    return 'Été ' + year;
+                case '3':
+                    return 'Automne ' + year;
+                default:
+                    break;
             }
         }
     }
@@ -88,7 +83,14 @@ export default {
         <div class="layout-topbar-actions">
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <Select v-model="selectedTrimestre" :options="trimestre" optionLabel="name" placeholder="Selectionner une campagne" class="w-full md:w-70" />
+                    <Select v-model="selectedTrimestre" @change="updateTrimestreOptions" :options="trimestre" placeholder="Selectionner une campagne" class="w-full md:w-70">
+                        <template #value="slotProps">
+                            <div>{{ formatTrimestre(slotProps.value) }}</div>
+                        </template>
+                        <template #option="slotProps">
+                            <div>{{ formatTrimestre(slotProps.option) }}</div>
+                        </template>
+                    </Select>
                 </div>
             </div>
         </div>

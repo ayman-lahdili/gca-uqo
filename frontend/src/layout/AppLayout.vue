@@ -1,6 +1,7 @@
 <script>
 import CreateEditCampagne from '@/components/CreateEditCampagne.vue';
 import { useLayout } from '@/layout/composables/layout';
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import AppFooter from './AppFooter.vue';
 import AppSidebar from './AppSidebar.vue';
 import AppTopbar from './AppTopbar.vue';
@@ -46,6 +47,9 @@ export default {
                 'layout-overlay-active': this.layoutState.overlayMenuActive,
                 'layout-mobile-active': this.layoutState.staticMenuMobileActive
             };
+        },
+        sharedValueFromGlobalState() {
+            return sharedSelectState.selectedValue;
         }
     },
     watch: {
@@ -55,6 +59,12 @@ export default {
             } else {
                 this.unbindOutsideClickListener();
             }
+        },
+        // Watch the computed property that tracks the shared state
+        sharedValueFromGlobalState(newValue, oldValue) {
+            console.log(`UnrelatedPageComponent detected change via watch: ${newValue}`);
+            // You can trigger actions here when the value changes, e.g., automatically fetch data
+            // this.fetchData();
         }
     },
     methods: {
@@ -111,29 +121,7 @@ export default {
         <app-sidebar></app-sidebar>
         <div class="layout-main-container">
             <div class="layout-main">
-                <router-view v-if="!showCreateCampagne"></router-view>
-                <template v-else>
-                    <div class="relative overflow-hidden w-full">
-                        <div class="flex w-[200%] transition-transform duration-500" :class="{ '-translate-x-1/2': createCampagneDialog }">
-                            <!-- First Page -->
-                            <div class="w-1/2 flex-shrink-0">
-                                <div class="flex h-96">
-                                    <div class="m-auto">
-                                        <h3>On dirait que c'est votre première visite . . .</h3>
-                                        <div class="flex flex-row-reverse">
-                                            <Button label="Créer une nouvelle campagne" class="mr-2" icon="pi pi-arrow-right" severity="primary" iconPos="right" outlined @click="createCampagneDialog = true" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="w-1/2 flex-shrink-0 overflow-hidden">
-                                <div>
-                                    <CreateEditCampagne v-model:campagne="campagne" campagneAction="NEW" :open="showCreateCampagne" @close="createCampagneDialog = false" @save="createCampagneDialog = false" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
+                <router-view v-if="sharedValueFromGlobalState"></router-view>
             </div>
             <app-footer></app-footer>
         </div>
