@@ -45,13 +45,29 @@ export default {
                 { label: 'cloturee', value: 'Clôturée' },
                 { label: 'annulee', value: 'Annulée' }
             ],
-            loading: false
+            loading: false,
+            sharedState: sharedSelectState
         };
     },
     computed: {
         // Create a computed property to make the shared state reactive within this component
-        sharedValueFromGlobalState() {
-            return sharedSelectState.selectedValue;
+        selectedTrimestre() {
+            return this.sharedState.selectedValue;
+        },
+        // Computed property to filter campaigns based on the shared selected trimestre
+        filteredCampagnes() {
+            if (this.selectedTrimestre === null) {
+                return []; // Or return all: this.campagnes
+            }
+            return this.campagnes.filter((c) => c.trimestre === this.selectedTrimestre);
+        }
+    },
+    watch: {
+        // Optional: Watch for changes if you need to perform actions other than filtering
+        selectedTrimestre(newValue, oldValue) {
+            console.log(`Campagnes component detected trimestre change: ${newValue}`);
+            // Example: Trigger a refresh or other logic if needed
+            // this.someMethodBasedOnTrimestre(newValue);
         }
     },
     mounted() {
@@ -63,7 +79,16 @@ export default {
             try {
                 const campagnes = await CampagneService.getCampagnes();
                 this.campagnes = campagnes;
+
+                const fetchedTrimestres = [...new Set(campagnes.map((c) => c.trimestre))];
+
+                fetchedTrimestres.forEach((trimestre) => {
+                    // Use the method from the imported shared state
+                    this.sharedState.updateTrimestreOptions(trimestre);
+                });
+                this.sharedState.validateSelection();
             } catch (error) {
+                console.log(error);
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les campagnes', life: 3000 });
             } finally {
                 this.loading = false; // Set loading to false
@@ -72,6 +97,7 @@ export default {
         async saveCampagne() {
             this.loading = true; // Set loading to true
             try {
+                let savedTrimestre = this.campagne.trimestre;
                 if (this.campagneAction === 'NEW') {
                     const result = await CampagneService.createCampagne({
                         trimestre: this.campagne.trimestre,
@@ -82,8 +108,9 @@ export default {
                     });
 
                     if (result) {
-                        sharedSelectState.updateTrimestreOptions(this.campagne.trimestre);
-                        sharedSelectState.setSelectedValue(this.campagne.trimestre);
+                        // Use shared state methods AFTER successful creation
+                        this.sharedState.updateTrimestreOptions(savedTrimestre);
+                        this.sharedState.setSelectedValue(savedTrimestre); // Optionally select the new one
                     }
                 } else if (this.campagneAction === 'EDIT') {
                     let data = {
@@ -99,6 +126,7 @@ export default {
                 this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Campagne sauvegardée', life: 3000 });
                 await this.fetchCampagnes(); // Reload the table
             } catch (error) {
+                console.log(error);
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de sauvegarder la campagne', life: 3000 });
             } finally {
                 this.loading = false; // Set loading to false

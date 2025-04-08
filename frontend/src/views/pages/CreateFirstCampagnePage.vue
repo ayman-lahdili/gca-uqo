@@ -43,6 +43,13 @@ export default {
             isSidebarActive: false,
             campagne: {
                 trimestre: '',
+                config: {
+                    echelle_salariale: [18.85, 24.49, 26.48],
+                    activite_heure: {
+                        'Travaux dirigés': { preparation: 1.0, travail: 2.0 },
+                        'Travaux pratiques': { preparation: 2.0, travail: 3.0 }
+                    }
+                },
                 status: 'INPROGRESS',
                 cours: []
             }

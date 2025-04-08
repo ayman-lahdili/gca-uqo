@@ -49,7 +49,7 @@
                 <Button v-if="campagne.trimestre !== '' && campagneAction === 'EDIT'" label="Enregistrer" icon="pi pi-save" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
             </div>
             <template v-if="campagne.trimestre !== ''">
-                <DataTable :value="campagne.cours" tableStyle="min-width: 50rem">
+                <DataTable :value="campagne.cours" tableStyle="min-width: 50rem" class="card">
                     <Column field="sigle" header="Sigle"></Column>
                     <Column field="titre" header="Titre"></Column>
                     <Column field="status" header="Statut">

@@ -97,7 +97,7 @@ class Etudiant(SQLModel, table=True):
     programme: str
     trimestre: int
 
-    candidature: list["Candidature"] = Relationship(back_populates="etudiant")
+    candidature: list["Candidature"] = Relationship(back_populates="etudiant", cascade_delete=True)
     
 class Candidature(SQLModel, table=True):
     __table_args__ = (

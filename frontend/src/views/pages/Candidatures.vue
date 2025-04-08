@@ -60,7 +60,8 @@ export default {
                 }
             ],
             trimestre: new Date().getFullYear() * 10 + Math.ceil((new Date().getMonth() + 1) / 4), // Current trimestre
-            loading: false
+            loading: false,
+            sharedState: sharedSelectState
         };
     },
     mounted() {
@@ -68,24 +69,32 @@ export default {
     },
     computed: {
         // Create a computed property to make the shared state reactive within this component
-        sharedValueFromGlobalState() {
-            return sharedSelectState.selectedValue;
+        selectedTrimestre() {
+            return this.sharedState.selectedValue;
         }
     },
     watch: {
-        // Watch the computed property that tracks the shared state
-        sharedValueFromGlobalState(newValue, oldValue) {
-            console.log(`UnrelatedPageComponent detected change via watch: ${newValue}`);
-            // You can trigger actions here when the value changes, e.g., automatically fetch data
-            // this.fetchData();
-            console.log('GETTIME', localStorage.getItem('selectedTrimestre'));
+        // Watch the computed property 'selectedTrimestre'
+        selectedTrimestre(newValue, oldValue) {
+            console.log(`Candidatures component detected trimestre change: ${newValue}`);
+            if (newValue !== oldValue) {
+                // Fetch data when the trimestre changes
+                this.fetchCandidatures();
+            }
         }
     },
     methods: {
         async fetchCandidatures() {
+            const currentTrimestre = this.selectedTrimestre;
+            if (currentTrimestre === null) {
+                this.candidats = []; // Clear data if no trimestre
+                return;
+            }
+
             this.loading = true;
             try {
-                const data = await CandidatService.getCandidatures(this.trimestre);
+                console.log(this.trimestre);
+                const data = await CandidatService.getCandidatures(currentTrimestre);
                 this.candidats = data;
             } catch (error) {
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les candidatures', life: 3000 });
@@ -105,7 +114,7 @@ export default {
                         cycle: candidat.cycle,
                         campus: candidat.campus,
                         programme: candidat.programme, // Send the code
-                        trimestre: this.trimestre,
+                        trimestre: this.selectedTrimestre,
                         courses: candidat.candidature.map((c) => ({
                             sigle: c.sigle,
                             titre: c.titre,
@@ -121,7 +130,7 @@ export default {
                         cycle: candidat.cycle,
                         campus: candidat.campus,
                         programme: candidat.programme, // Send the code
-                        trimestre: this.trimestre,
+                        trimestre: candidat.trimestre,
                         courses: candidat.candidature.map((c) => ({
                             sigle: c.sigle,
                             titre: c.titre,
@@ -215,7 +224,7 @@ export default {
             }
 
             if (!isValid) {
-                this.toast.add({ severity: 'error', summary: 'Validation Error', detail: 'There are invalid fields.', life: 3000 });
+                this.toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Certain champs son invalide.', life: 3000 });
                 return;
             }
 
@@ -283,6 +292,9 @@ export default {
         // Datatable
         exportCSV() {
             this.dt.exportCSV();
+        },
+        downloadCVs() {
+            console.log('downloadCVs');
         },
 
         // File upload
@@ -387,7 +399,7 @@ export default {
                         <!-- Form divided into clear sections -->
                         <div class="space-y-8">
                             <!-- Section 1: Identification -->
-                            <section class="rounded-lg shadow p-6">
+                            <section class="rounded-lg p-6">
                                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Informations d'identification</h2>
                                 <div class="space-y-4">
                                     <!-- Name inputs in a row -->
@@ -416,7 +428,7 @@ export default {
                                         <!-- Email -->
                                         <div>
                                             <label for="email" class="block text-sm font-medium mb-1">Adresse courriel de l'UQO</label>
-                                            <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :class="{ 'border-red-500': candidatFormState.email }" @change="candidatFormState.email = false" />
+                                            <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :invalid="candidatFormState.email" @change="candidatFormState.email = false" />
                                         </div>
                                     </div>
 
@@ -432,7 +444,7 @@ export default {
                             </section>
 
                             <!-- Section 2: Academic Information -->
-                            <section class="rounded-lg shadow p-6">
+                            <section class="rounded-lg p-6">
                                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Informations académiques</h2>
                                 <div class="space-y-4">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -469,7 +481,7 @@ export default {
                             </section>
 
                             <!-- Section 3: Course Selection -->
-                            <section class="rounded-lg shadow p-6">
+                            <section class="rounded-lg p-6">
                                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Sélection des cours d'intérêt</h2>
 
                                 <!-- Course table -->

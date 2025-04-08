@@ -33,7 +33,7 @@ export default {
         disconnect() {
             console.log('User disconnected');
             localStorage.clear();
-            this.$router.push('/login');
+            window.location.replace('/login');
         }
     }
 };

@@ -109,10 +109,10 @@ def get_campagnes(session: SessionDep) -> Any:
                 cout_total += contrat
 
         # Distribution des sceances
-        activite_td = session.exec(select(Activite).where(Activite.type == ActiviteType.TD and Activite.trimestre == campagne.trimestre)).all()
+        activite_td = session.exec(select(Activite).where((Activite.type == ActiviteType.TD) & (Activite.trimestre == campagne.trimestre))).all()
         nbr_td_total = sum([activite.nombre_seance for activite in activite_td])
 
-        activite_tp = session.exec(select(Activite).where(Activite.type == ActiviteType.TP and Activite.trimestre == campagne.trimestre)).all()
+        activite_tp = session.exec(select(Activite).where((Activite.type == ActiviteType.TP) & (Activite.trimestre == campagne.trimestre))).all()
         nbr_tp_total = sum([activite.nombre_seance for activite in activite_tp])
 
         # Distribution des candidats
@@ -244,7 +244,7 @@ def sync_campagne(
 
 @router.patch('/{trimestre}/{sigle}/changes/approve', response_model=ApprovalResponse)
 def approve_course(trimestre: int, sigle: str, session: SessionDep):
-    cours = session.exec(select(Cours).where(Cours.trimestre == trimestre and Cours.sigle == sigle)).first()
+    cours = session.exec(select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")

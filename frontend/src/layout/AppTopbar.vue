@@ -1,54 +1,33 @@
-<script>
+<script setup>
 import { useLayout } from '@/layout/composables/layout';
 import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
+import { computed } from 'vue';
 
-export default {
-    data() {
-        return {
-            selectedTrimestre: null,
-            trimestre: []
-        };
-    },
-    setup() {
-        const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
+const { toggleMenu } = useLayout();
+const formattedTrimestreOptions = computed(() => {
+    return sharedSelectState.trimestreOptions.map((value) => ({
+        label: formatTrimestre(value), // Use your existing formatting logic
+        value: value // Keep the original numeric value
+    }));
+});
 
-        // Expose the composable functions/data to the template
-        return {
-            toggleMenu,
-            toggleDarkMode,
-            isDarkTheme
-        };
-    },
-    mounted() {
-        this.trimestre = JSON.parse(localStorage.getItem('trimestreOptions'));
-        this.selectedTrimestre = sharedSelectState.selectedValue === null ? this.trimestre[0] : sharedSelectState.selectedValue;
-        console.log('asda', this.selectedTrimestre);
-        sharedSelectState.setSelectedValue(this.selectedTrimestre);
-    },
-    methods: {
-        updateTrimestreOptions() {
-            sharedSelectState.setSelectedValue(this.selectedTrimestre);
-            localStorage.setItem('selectedTrimestre', this.selectedTrimestre);
-            console.log(`SelectComponent emitted: ${this.selectedTrimestre}`);
-        },
-        formatTrimestre(value) {
-            value = value + '';
-            let season = value.charAt(4);
-            let year = value.substring(0, 4);
-
-            switch (season) {
-                case '1':
-                    return 'Hiver ' + year;
-                case '2':
-                    return 'Été ' + year;
-                case '3':
-                    return 'Automne ' + year;
-                default:
-                    break;
-            }
-        }
+// Formatting function (can be moved to a utils file)
+function formatTrimestre(value) {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value);
+    const season = stringValue.charAt(4);
+    const year = stringValue.substring(0, 4);
+    switch (season) {
+        case '1':
+            return `Hiver ${year}`;
+        case '2':
+            return `Été ${year}`;
+        case '3':
+            return `Automne ${year}`;
+        default:
+            return stringValue; // Fallback
     }
-};
+}
 </script>
 
 <template>
@@ -84,14 +63,16 @@ export default {
         <div class="layout-topbar-actions">
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <Select v-model="selectedTrimestre" @change="updateTrimestreOptions" :options="trimestre" placeholder="Selectionner une campagne" class="w-full md:w-70">
-                        <template #value="slotProps">
-                            <div>{{ formatTrimestre(slotProps.value) }}</div>
-                        </template>
-                        <template #option="slotProps">
-                            <div>{{ formatTrimestre(slotProps.option) }}</div>
-                        </template>
-                    </Select>
+                    <Select
+                        v-if="sharedSelectState.trimestreOptions.length > 0"
+                        v-model="sharedSelectState.selectedValue"
+                        :options="formattedTrimestreOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Selectionner un trimestre"
+                        class="w-full md:w-70"
+                    />
+                    <span v-else>Loading...</span>
                 </div>
             </div>
         </div>

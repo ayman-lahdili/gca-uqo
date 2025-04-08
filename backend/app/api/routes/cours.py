@@ -25,7 +25,7 @@ class CandidaturePayload(BaseModel):
 
 @router.post('/{trimestre}/{sigle}/candidature', response_model=CoursFullRead)
 def approve_course(trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep):
-    cours = session.exec(select(Cours).where(Cours.trimestre == trimestre and Cours.sigle == sigle)).first()
+    cours = session.exec(select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")

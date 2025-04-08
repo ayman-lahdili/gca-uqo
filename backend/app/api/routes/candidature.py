@@ -12,6 +12,11 @@ from app.schemas.enums import Note
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 
+class CandidatureCoursRequestItem(BaseModel):
+    sigle: str
+    titre: str = ""
+    note: Note = Note.non_specifie
+
 class CandidaturePayload(BaseModel):
     code_permanent: str
     nom: str
@@ -21,13 +26,13 @@ class CandidaturePayload(BaseModel):
     campus: str = ""
     programme: str = ""
     email: str = ""
-    courses: List[dict] | None = None  # Each dict contains 'sigle', 'titre', and 'score'
+    courses: List[CandidatureCoursRequestItem] | None = None
 
 @router.post("/", response_model=EtudiantFullRead)
 def create_candidature(payload: CandidaturePayload, session: SessionDep):
     # Validate if the student already exists
     student = session.exec(
-        select(Etudiant).where(Etudiant.code_permanent == payload.code_permanent and Etudiant.trimestre == payload.trimestre)
+        select(Etudiant).where((Etudiant.code_permanent == payload.code_permanent) & (Etudiant.trimestre == payload.trimestre))
     ).first()
 
     if not student:
@@ -45,6 +50,8 @@ def create_candidature(payload: CandidaturePayload, session: SessionDep):
         session.add(student)
         session.commit()
     else:
+        print(student, student.code_permanent, student.trimestre, payload.trimestre, payload)
+
         raise HTTPException(
             status_code=400,
             detail="A candidature for this trimestre already exists for the student.",
@@ -58,9 +65,9 @@ def create_candidature(payload: CandidaturePayload, session: SessionDep):
             try:
                 candidature = Candidature(
                     id_etudiant=student.id,
-                    sigle=course["sigle"],
+                    sigle=course.sigle,
                     trimestre=payload.trimestre,
-                    note=Note(course.get("note")) if course.get("note") else Note.non_specifie,
+                    note=course.note,
                 )
             except KeyError as e:
                 raise HTTPException(
@@ -82,7 +89,7 @@ def get_candidatures(trimestre: int, session: SessionDep):
 
     return students
 
-@router.put("/{student_id}")
+@router.put("/{student_id}", response_model=EtudiantFullRead)
 def update_student(student_id: int, payload: CandidaturePayload, session: SessionDep):
     # Fetch the student by ID
     student = session.get(Etudiant, student_id)
@@ -112,6 +119,9 @@ def update_student(student_id: int, payload: CandidaturePayload, session: Sessio
 
     assert student.id is not None, "Student ID should not be None after commit."
 
+    session.add(student)
+    session.commit()
+
     if payload.courses is not None:
         # Fetch existing candidatures for the student
         existing_candidatures = session.exec(
@@ -120,35 +130,37 @@ def update_student(student_id: int, payload: CandidaturePayload, session: Sessio
 
         # Process courses and update candidatures
         existing_sigles = {c.sigle for c in existing_candidatures}
-        incoming_sigles = {course["sigle"] for course in payload.courses}
+        new_sigles = {course.sigle for course in payload.courses}
+        sigles_to_add = new_sigles - existing_sigles
+        sigles_to_remove = existing_sigles - new_sigles
 
         # Add or update candidatures
-        for course in payload.courses:
-            if course["sigle"] in existing_sigles:
-                # Update existing candidature
-                candidature = next(c for c in existing_candidatures if c.sigle == course["sigle"])
-                candidature.note = Note(course.get("note")) if course.get("note") else candidature.note
-            else:
+        for course in existing_candidatures:
+            if course.sigle in sigles_to_remove:
+                session.delete(course)
+
+        processed_cours = set()
+        for cours in payload.courses:
+            if cours.sigle in processed_cours:
+                continue
+            if cours.sigle in sigles_to_add:
                 try:
                     # Add new candidature
                     candidature = Candidature(
                         id_etudiant=student.id,
-                        sigle=course["sigle"],
+                        sigle=cours.sigle,
                         trimestre=payload.trimestre,
-                        note=Note(course.get("note")),
+                        note=cours.note,
                     )
                 except ValueError:
                     raise HTTPException(status_code=400, detail="Invalid Note value")
                 
                 session.add(candidature)
+        session.commit()
 
-        # Remove candidatures that are not in the incoming list
-        for candidature in existing_candidatures:
-            if candidature.sigle not in incoming_sigles:
-                session.delete(candidature)
+    session.refresh(student, attribute_names=["candidature"])
 
-    session.commit()
-    return {"message": "Student and candidatures updated successfully."}
+    return student
 
 @router.delete("/{student_id}")
 def delete_student(student_id: int, session: SessionDep):
@@ -156,13 +168,6 @@ def delete_student(student_id: int, session: SessionDep):
     student = session.get(Etudiant, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
-
-    # Delete associated candidatures
-    candidatures = session.exec(
-        select(Candidature).where(Candidature.id_etudiant == student.id)
-    ).all()
-    for candidature in candidatures:
-        session.delete(candidature)
 
     # Delete the student
     session.delete(student)
