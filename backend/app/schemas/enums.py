@@ -42,6 +42,8 @@ class Note(str, Enum):
 
 JourSemaine = Literal["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 
+Departement = Literal['DII']
+
 class ActiviteConfig(BaseModel):
     preparation: float
     travail: float

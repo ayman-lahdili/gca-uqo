@@ -1,19 +1,9 @@
+import apiClient from '@/service/api'; // Adjust path if needed
+
 export const UQOService = {
-    getMapCours(trimestre) {
-        return {
-            INF1163: {
-                titre: 'Modélisation et conception orientée objet'
-            },
-            INF1563: {
-                titre: 'Programmation I'
-            },
-            INF1573: {
-                titre: 'Programmation II'
-            },
-            CYB1063: {
-                titre: 'Communication et leadership en cybersécurité'
-            }
-        };
+    async getCours() {
+        const response = await apiClient.get(`/v1/uqo/cours?departement=DII`);
+        return response.data;
     },
 
     getCoursDetails(sigle) {

@@ -8,7 +8,7 @@ import os
 from typing import List, Literal, Dict, Any
 
 from app.models import Cours, Activite, Seance
-from app.schemas.enums import Campus, ActiviteType, ActiviteMode, JourSemaine, ChangeType
+from app.schemas.enums import Campus, ActiviteType, ActiviteMode, JourSemaine, ChangeType, Departement
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -64,8 +64,6 @@ class UQOProgramService:
 
 class UQOCoursService:
     
-    DEPARTEMENT = Literal['DII']
-
     def __init__(self) -> None:
         self.url = "https://etudier.uqo.ca/cours"
         self.session = requests.Session()
@@ -97,7 +95,7 @@ class UQOCoursService:
         except Exception as e:
             print(f"Error refreshing token: {e}")
 
-    def get_courses(self, departement: DEPARTEMENT, cycle: str = ""):
+    def get_courses(self, departement: Departement, cycle: str = ""):
             
         data = {
             "CritRech": "",

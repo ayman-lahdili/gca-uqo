@@ -42,7 +42,7 @@
                     <Select v-if="campagneAction === 'NEW'" id="trimestre" v-model="campagne.trimestre" :options="optionTrimestre" optionLabel="value" placeholder="Sélectionner un trimestre" :disabled="campagne.trimestre !== ''" />
                     <div v-if="campagne.trimestre !== ''">
                         <InputText v-model="sigle" type="text" placeholder="Sigle" maxlength="8" style="border-start-end-radius: 0; border-end-end-radius: 0" @keyup.enter="addCourse(sigle)" />
-                        <Button label="Ajouter" @click="addCourse(sigle)" :disabled="sigle.length < 7" style="border-start-start-radius: 0; border-end-start-radius: 0" />
+                        <Button label="Ajouter" @click="addCourse(sigle)" :disabled="sigle.length < 7" style="border-start-start-radius: 0; border-end-start-radius: 0" :loading="isSearchingCourse" />
                     </div>
                 </div>
                 <Button v-if="campagne.trimestre !== '' && campagneAction === 'NEW'" label="Commencer la campagne" icon="pi pi-arrow-right" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
@@ -135,7 +135,8 @@ export default {
             showWarningDialog: false,
             hasUnsavedChanges: false,
             optionTrimestre: [],
-            trimestres: []
+            trimestres: [],
+            isSearchingCourse: false // New loading state
         };
     },
     mounted() {
@@ -210,7 +211,7 @@ export default {
                     break;
             }
         },
-        addCourse(sigle) {
+        async addCourse(sigle) {
             if (sigle.length < 7) {
                 this.toast.add({ severity: 'warn', summary: 'Attention', detail: 'Le sigle doit contenir 7 caractères', life: 2000 });
                 return;
@@ -221,20 +222,28 @@ export default {
                 return;
             }
 
-            const cours = UQOService.getMapCours(this.campagne.trimestre.label)?.[sigle.toUpperCase()];
+            this.isSearchingCourse = true; // Start loading
+            try {
+                const cours = await UQOService.getCours();
 
-            let title;
-            if (cours?.titre == undefined) {
-                title = UQOService.getCoursDetails(sigle).titre;
+                let title = 'Cours introuvable';
+                const foundCourse = cours.find((course) => course.sigle === sigle);
+                if (foundCourse) {
+                    title = foundCourse.titre;
+                }
+
+                this.campagne.cours.push({
+                    sigle: sigle,
+                    titre: title,
+                    status: foundCourse ? 'CONFIRME' : 'NONCONFIRME'
+                });
+                this.hasUnsavedChanges = true;
+                this.$emit('update:campagne', this.campagne);
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur lors de la recherche du cours', life: 3000 });
+            } finally {
+                this.isSearchingCourse = false; // End loading
             }
-
-            this.campagne.cours.push({
-                sigle: sigle,
-                titre: cours?.titre || title,
-                status: cours === undefined ? 'NONCONFIRME' : 'CONFIRME'
-            });
-            this.hasUnsavedChanges = true;
-            this.$emit('update:campagne', this.campagne);
         },
         removeCourse(sigle) {
             this.campagne.cours = this.campagne.cours.filter((val) => val.sigle !== sigle);

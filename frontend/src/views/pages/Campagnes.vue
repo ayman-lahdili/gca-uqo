@@ -141,13 +141,26 @@ export default {
             this.reactivateCampagneDialog = true;
         },
         async closeCreateEditCampagne() {
+            this.selectedCampagne = null;
             this.campagneDialog = false;
             await this.fetchCampagnes();
         },
         resetCampagne() {
             this.campagne = {
                 trimestre: '',
-                echelle_salariale: [18.85, 24.49, 26.48],
+                config: {
+                    echelle_salariale: [18.85, 24.49, 26.48],
+                    activite_heure: {
+                        'Travaux dirigés': {
+                            preparation: 1.0,
+                            travail: 2.0
+                        },
+                        'Travaux pratiques': {
+                            preparation: 2.0,
+                            travail: 3.0
+                        }
+                    }
+                },
                 cours: []
             };
         },
