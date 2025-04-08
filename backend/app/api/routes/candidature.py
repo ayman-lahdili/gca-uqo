@@ -66,6 +66,7 @@ def create_candidature(payload: CandidaturePayload, session: SessionDep):
                 candidature = Candidature(
                     id_etudiant=student.id,
                     sigle=course.sigle,
+                    titre=course.titre,
                     trimestre=payload.trimestre,
                     note=course.note,
                 )
@@ -138,6 +139,9 @@ def update_student(student_id: int, payload: CandidaturePayload, session: Sessio
         for course in existing_candidatures:
             if course.sigle in sigles_to_remove:
                 session.delete(course)
+            else:
+                # Update note
+                course.note = [c for c in payload.courses if c.sigle == course.sigle][0].note
 
         processed_cours = set()
         for cours in payload.courses:
@@ -149,6 +153,7 @@ def update_student(student_id: int, payload: CandidaturePayload, session: Sessio
                     candidature = Candidature(
                         id_etudiant=student.id,
                         sigle=cours.sigle,
+                        titre=cours.titre,
                         trimestre=payload.trimestre,
                         note=cours.note,
                     )

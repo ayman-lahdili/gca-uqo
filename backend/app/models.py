@@ -120,5 +120,6 @@ class Candidature(SQLModel, table=True):
         link_model=ActiviteCandidature
     )
     sigle: str
+    titre: str = ""
     trimestre: int
 

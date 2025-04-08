@@ -16,12 +16,10 @@ class UQOAPIException(Exception):
 
 class UQOProgramService:
     
-    DEPARTEMENT = Literal['INFOR']
-
     def __init__(self, debug: bool = False) -> None:
         self.debug = debug
 
-    def get_programmes(self, departement: DEPARTEMENT) -> List[Dict[str, Any]]:
+    def get_programmes(self, departement: Departement, cycle: Literal["1", "2", "3"]) -> List[Dict[str, Any]]:
         url = "https://etudier.uqo.ca/programmes"
         pattern = re.compile(r'jsonLstRes\s*=\s*(\[.*)')
 
@@ -38,7 +36,7 @@ class UQOProgramService:
             json_string = match.group(1)[:-2]
             try:
                 program_data = json.loads(json_string)
-                result = [program for program in program_data if program["CdSectHtml"] == departement]
+                result = [program for program in program_data if program["CdSectHtml"] == departement and program["CdCyc"] == cycle]
                 return result
             except json.JSONDecodeError as e:
                 self.__debug_parse_error(json_string, e)

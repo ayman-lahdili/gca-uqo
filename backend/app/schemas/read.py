@@ -53,6 +53,7 @@ class CandidatureRead(SQLModel):
     sigle: str
     trimestre: int
     etudiant: EtudiantRead
+    titre: str
 
 class CandidatureFullRead(CandidatureRead):
     activite: list[ActiviteFullRead]

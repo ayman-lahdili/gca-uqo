@@ -37,34 +37,16 @@ export default {
             candidatureAction: '', // VIEW, NEW, EDIT, DELETE
 
             // MISC
-            optionProgramme: [
-                {
-                    libelle: 'Baccalauréat en génie électrique',
-                    code: '7543'
-                },
-                {
-                    libelle: 'Baccalauréat en génie informatique',
-                    code: '7643'
-                },
-                {
-                    libelle: 'Baccalauréat en informatique',
-                    code: '7833'
-                },
-                {
-                    libelle: 'Baccalauréat en informatique - régime coopératif',
-                    code: '6627'
-                },
-                {
-                    libelle: 'Certificat en gouvernance et cybersécurité',
-                    code: '4665'
-                }
-            ],
+            programmes: [],
             trimestre: new Date().getFullYear() * 10 + Math.ceil((new Date().getMonth() + 1) / 4), // Current trimestre
             loading: false,
-            sharedState: sharedSelectState
+            sharedState: sharedSelectState,
+            courses: [],
+            programmeLoading: false // Add loading state for program list
         };
     },
     mounted() {
+        UQOService.getCours().then((courses) => (this.courses = courses));
         this.fetchCandidatures();
     },
     computed: {
@@ -188,6 +170,7 @@ export default {
                 programme: false,
                 candidature: false
             };
+            this.getListProgramme(this.candidat.cycle);
             this.selectedCandidat = null;
             this.candidatDialog = true;
 
@@ -196,6 +179,7 @@ export default {
         openEditCandidat(candidat) {
             this.candidat = { ...candidat };
 
+            this.getListProgramme(this.candidat.cycle);
             this.selectedCandidat = candidat;
             this.candidatDialog = true;
             this.candidatAction = 'EDIT';
@@ -273,6 +257,14 @@ export default {
                     this.toast.add({ severity: 'warn', summary: 'Attention', detail: 'Une candidature pour ce cours existe déjà pour ce candidat', life: 2000 });
                     return;
                 }
+                let title = 'Cours introuvable';
+                console.log(this.courses);
+                const foundCourse = this.courses.find((course) => course.sigle === this.candidature.sigle);
+                if (foundCourse) {
+                    title = foundCourse.titre;
+                }
+                this.candidature.titre = title;
+                console.log(this.candidature);
                 this.candidat.candidature.push(this.candidature);
                 this.candidatureDialog = false;
             } else if (this.candidatureAction === 'EDIT') {
@@ -306,8 +298,16 @@ export default {
         },
 
         // MISC
-        getListProgramme(cycle) {
-            this.optionProgramme = UQOService.getProgramme(cycle);
+        async getListProgramme(cycle) {
+            this.programmeLoading = true; // Start loading
+            try {
+                const programmes = await UQOService.getProgramme(cycle);
+                this.programmes = programmes;
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les programmes', life: 3000 });
+            } finally {
+                this.programmeLoading = false; // End loading
+            }
         }
     }
 };
@@ -475,7 +475,7 @@ export default {
                                     <!-- Study program - only shown when cycle is selected -->
                                     <div v-if="candidat.cycle">
                                         <label for="programme" class="block text-sm font-medium mb-1">Programme d'étude</label>
-                                        <Select id="programme" v-model="candidat.programme" :options="optionProgramme" optionLabel="libelle" optionValue="code" class="w-full" placeholder="Sélectionnez un programme" />
+                                        <Select id="programme" v-model="candidat.programme" :options="programmes" optionLabel="label" optionValue="sigle" class="w-full" placeholder="Sélectionnez un programme" :loading="programmeLoading" />
                                     </div>
                                 </div>
                             </section>

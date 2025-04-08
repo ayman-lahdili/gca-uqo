@@ -136,10 +136,12 @@ export default {
             hasUnsavedChanges: false,
             optionTrimestre: [],
             trimestres: [],
-            isSearchingCourse: false // New loading state
+            isSearchingCourse: false,
+            courses: []
         };
     },
     mounted() {
+        UQOService.getCours().then((courses) => (this.courses = courses));
         CampagneService.getListTrimestre()
             .then((trimestres) => (this.trimestres = trimestres))
             .then(() => {
@@ -224,10 +226,8 @@ export default {
 
             this.isSearchingCourse = true; // Start loading
             try {
-                const cours = await UQOService.getCours();
-
                 let title = 'Cours introuvable';
-                const foundCourse = cours.find((course) => course.sigle === sigle);
+                const foundCourse = this.courses.find((course) => course.sigle === sigle);
                 if (foundCourse) {
                     title = foundCourse.titre;
                 }

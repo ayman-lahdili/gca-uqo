@@ -6,22 +6,8 @@ export const UQOService = {
         return response.data;
     },
 
-    getCoursDetails(sigle) {
-        return { titre: 'Programmation Web' };
-    },
-
-    getProgramme(cycle) {
-        return [
-            {
-                code: '7543',
-                libelle: 'Baccalauréat en génie électrique',
-                cycle: '1'
-            },
-            {
-                code: '7833',
-                libelle: 'Baccalauréat en informatique',
-                cycle: '1'
-            }
-        ];
+    async getProgramme(cycle) {
+        const response = await apiClient.get(`/v1/uqo/programmes?departement=INFOR&cycle=${cycle}`);
+        return response.data;
     }
 };
