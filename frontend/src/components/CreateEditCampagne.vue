@@ -5,6 +5,36 @@
             <Button icon="pi pi-times" variant="text" rounded severity="secondary" class="mb-4" @click="closeCampagneDialog" />
         </div>
         <div class="flex flex-col gap-4">
+            <!-- Config Section -->
+            <Fieldset legend="Configuration de la campagne" toggleable>
+                <div class="flex flex-row gap-4 items-center justify-center">
+                    <div>
+                        <h4>Échelle salariale</h4>
+                        <div class="flex flex-col gap-2 pt-1">
+                            <div v-for="n in 3">
+                                <label class="text-sm mb-1 block">Cycle {{ n }}</label>
+                                <InputNumber v-model="campagne.config.echelle_salariale[n - 1]" mode="decimal" :min="0" :placeholder="'Cycle ' + n" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center">
+                        <h4>Heure par activité</h4>
+                        <div v-for="(values, activity) in campagne.config.activite_heure" :key="activity" class="flex flex-col gap-2 items-center justify-center">
+                            <label class="text mb-1 block">{{ activity }}</label>
+                            <div class="flex gap-4 mb-5">
+                                <div>
+                                    <label class="text-sm mb-1 block">Heures de préparation</label>
+                                    <InputNumber v-model="values.preparation" mode="decimal" :min="0" placeholder="Préparation" />
+                                </div>
+                                <div>
+                                    <label class="text-sm mb-1 block">Durée de la scéance</label>
+                                    <InputNumber v-model="values.travail" mode="decimal" :min="0" placeholder="Travail" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Fieldset>
             <Button v-if="campagneAction === 'EDIT' && campagne.status === 'en_cours'" label="Conclure" icon="pi pi-stop-circle" class="mx-2" outlined severity="danger" @click="campagne.status = 'cloturee'" />
             <Button v-else-if="campagneAction === 'EDIT' && campagne.status === 'cloturee'" label="Réactiver" icon="pi pi-play-circle" class="mx-2" outlined severity="success" @click="campagne.status = 'en_cours'" />
             <div class="flex justify-between mx-2">
@@ -80,6 +110,13 @@ export default {
             default: () => ({
                 trimestre: '',
                 status: 'en_cours',
+                config: {
+                    echelle_salariale: [18.85, 24.49, 26.48],
+                    activite_heure: {
+                        'Travaux dirigés': { preparation: 1.0, travail: 2.0 },
+                        'Travaux pratiques': { preparation: 2.0, travail: 3.0 }
+                    }
+                },
                 cours: []
             })
         },
@@ -102,10 +139,8 @@ export default {
         };
     },
     mounted() {
-        CampagneService.getCampagnes()
-            .then((campagnes) => {
-                this.trimestres = campagnes.map((campagne) => campagne.trimestre);
-            })
+        CampagneService.getListTrimestre()
+            .then((trimestres) => (this.trimestres = trimestres))
             .then(() => {
                 this.setOptionTrimestre();
             });

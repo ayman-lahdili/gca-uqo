@@ -122,6 +122,16 @@ export default {
         <div class="layout-main-container">
             <div class="layout-main">
                 <router-view v-if="sharedValueFromGlobalState"></router-view>
+                <template v-else>
+                    <div class="text-center">
+                        <div class="m-auto">
+                            <h3>On dirait que c'est votre première visite . . .</h3>
+                            <div class="flex flex-row-reverse">
+                                <Button label="Créer une nouvelle campagne" class="mr-2" icon="pi pi-arrow-right" severity="primary" iconPos="right" outlined @click="createCampagneDialog = true" />
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
             <app-footer></app-footer>
         </div>

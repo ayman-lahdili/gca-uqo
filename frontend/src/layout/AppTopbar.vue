@@ -21,7 +21,8 @@ export default {
     },
     mounted() {
         this.trimestre = JSON.parse(localStorage.getItem('trimestreOptions'));
-        this.selectedTrimestre = sharedSelectState.selectedValue | this.trimestre[0];
+        this.selectedTrimestre = sharedSelectState.selectedValue === null ? this.trimestre[0] : sharedSelectState.selectedValue;
+        console.log('asda', this.selectedTrimestre);
         sharedSelectState.setSelectedValue(this.selectedTrimestre);
     },
     methods: {

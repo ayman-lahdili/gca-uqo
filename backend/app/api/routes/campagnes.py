@@ -25,7 +25,7 @@ class CampagneCreateRequest(BaseModel):
 class CampagneUpdateRequest(BaseModel):
     config: Dict[str, Any] | None = None
     status: str | None = None
-    sigles: List[str] | None = None
+    cours: List[CampagneCoursRequestItem] | None = None
 
 class ChangeInfo(BaseModel):
     change_type: ChangeType
@@ -179,11 +179,11 @@ def update_campagne(
     session.commit()
     session.refresh(campagne)
 
-    if payload.sigles is not None:
+    if payload.cours is not None:
         existing_courses = campagne.cours
-        existing_sigles = {course.sigle for course in existing_courses}
+        existing_sigles = {c.sigle for c in existing_courses}
 
-        new_sigles = set(payload.sigles)
+        new_sigles = {c.sigle for c in payload.cours}
         sigles_to_add = new_sigles - existing_sigles
         sigles_to_remove = existing_sigles - new_sigles
 
@@ -191,14 +191,18 @@ def update_campagne(
             if course.sigle in sigles_to_remove:
                 session.delete(course)
 
-        for sigle in sigles_to_add:
-            new_course = Cours(
-                campagne=campagne,
-                trimestre=trimestre,
-                sigle=sigle,
-                titre="",
-            )
-            session.add(new_course)
+        processed_cours = set()
+        for cours in payload.cours:
+            if cours.sigle in processed_cours:
+                continue
+            if cours.sigle in sigles_to_add:
+                new_course = Cours(
+                    campagne=campagne,
+                    trimestre=trimestre,
+                    sigle=cours.sigle,
+                    titre=cours.titre,
+                )
+                session.add(new_course)
 
         session.commit()
 

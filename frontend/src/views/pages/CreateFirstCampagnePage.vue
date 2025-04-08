@@ -24,6 +24,7 @@
 
 <script>
 import CreateEditCampagne from '@/components/CreateEditCampagne.vue';
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CampagneService } from '@/service/CampagneService';
 
 import { useLayout } from '@/layout/composables/layout';
@@ -117,12 +118,12 @@ export default {
                 })
             });
 
-            if (!result) {
-                console.error('ERRR');
-            } else {
-                console.log('asd', result);
-                localStorage.setItem('trimestreOptions', JSON.stringify([campagne.trimestre]));
+            if (result) {
+                sharedSelectState.updateTrimestreOptions(campagne.trimestre);
+                sharedSelectState.setSelectedValue(campagne.trimestre);
                 this.$router.push('/');
+            } else {
+                console.error('Erreur lors de la création de la campagne');
             }
         },
         formatTrimestre(value) {

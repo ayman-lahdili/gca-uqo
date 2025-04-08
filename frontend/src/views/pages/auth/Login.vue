@@ -1,5 +1,6 @@
 <script>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CampagneService } from '@/service/CampagneService';
 
 export default {
@@ -20,16 +21,21 @@ export default {
                 // Store the email in localStorage
                 localStorage.setItem('email', this.email);
 
-                let trimestres = await CampagneService.getListTrimestre();
+                try {
+                    let trimestres = await CampagneService.getListTrimestre();
 
-                console.log(trimestres.length, trimestres);
-
-                if (trimestres.length === 0) {
-                    this.$router.push('/premiere-visite');
-                } else {
-                    localStorage.setItem('trimestreOptions', JSON.stringify(trimestres));
-                    // Redirect to the homepage (or desired route)
-                    this.$router.push('/');
+                    if (Array.isArray(trimestres) && trimestres.length === 0) {
+                        this.$router.push('/premiere-visite');
+                    } else if (Array.isArray(trimestres)) {
+                        localStorage.setItem('trimestreOptions', JSON.stringify(trimestres));
+                        sharedSelectState.trimestreOptions = trimestres;
+                        sharedSelectState.setSelectedValue(trimestres[0]);
+                        this.$router.push('/');
+                    } else {
+                        console.error('Invalid trimestre data received:', trimestres);
+                    }
+                } catch (error) {
+                    console.error('Error fetching trimestres:', error);
                 }
             } else {
                 console.error('Email is required!');

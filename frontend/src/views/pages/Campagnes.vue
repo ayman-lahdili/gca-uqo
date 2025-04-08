@@ -1,6 +1,7 @@
 <script>
 import CreateEditCampagne from '@/components/CreateEditCampagne.vue';
 import StatisticsChart from '@/components/StatisticsChart.vue';
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CampagneService } from '@/service/CampagneService';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
@@ -19,7 +20,19 @@ export default {
             reactivateCampagneDialog: false,
             campagne: {
                 trimestre: '',
-                echelle_salariale: [18.85, 24.49, 26.48],
+                config: {
+                    echelle_salariale: [18.85, 24.49, 26.48],
+                    activite_heure: {
+                        'Travaux dirigés': {
+                            preparation: 1.0,
+                            travail: 2.0
+                        },
+                        'Travaux pratiques': {
+                            preparation: 2.0,
+                            travail: 3.0
+                        }
+                    }
+                },
                 cours: []
             },
             selectedCampagne: null,
@@ -35,6 +48,12 @@ export default {
             loading: false
         };
     },
+    computed: {
+        // Create a computed property to make the shared state reactive within this component
+        sharedValueFromGlobalState() {
+            return sharedSelectState.selectedValue;
+        }
+    },
     mounted() {
         this.fetchCampagnes();
     },
@@ -44,7 +63,6 @@ export default {
             try {
                 const campagnes = await CampagneService.getCampagnes();
                 this.campagnes = campagnes;
-                localStorage.setItem('trimestreOptions', JSON.stringify(campagnes));
             } catch (error) {
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les campagnes', life: 3000 });
             } finally {
@@ -55,17 +73,28 @@ export default {
             this.loading = true; // Set loading to true
             try {
                 if (this.campagneAction === 'NEW') {
-                    await CampagneService.createCampagne({
+                    const result = await CampagneService.createCampagne({
                         trimestre: this.campagne.trimestre,
-                        echelle_salariale: this.campagne.echelle_salariale,
-                        sigles: this.campagne.cours.map((c) => c.sigle)
+                        config: this.campagne.config,
+                        cours: this.campagne.cours.map((c) => {
+                            return { sigle: c.sigle, titre: c.titre };
+                        })
                     });
+
+                    if (result) {
+                        sharedSelectState.updateTrimestreOptions(this.campagne.trimestre);
+                        sharedSelectState.setSelectedValue(this.campagne.trimestre);
+                    }
                 } else if (this.campagneAction === 'EDIT') {
-                    await CampagneService.updateCampagne(this.campagne.trimestre, {
-                        echelle_salariale: this.campagne.echelle_salariale,
+                    let data = {
                         status: this.campagne.status,
-                        sigles: this.campagne.cours.map((c) => c.sigle)
-                    });
+                        config: this.campagne.config,
+                        cours: this.campagne.cours.map((c) => {
+                            return { sigle: c.sigle, titre: c.titre };
+                        })
+                    };
+                    console.log('asdadsad', data);
+                    await CampagneService.updateCampagne(this.campagne.trimestre, data);
                 }
                 this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Campagne sauvegardée', life: 3000 });
                 await this.fetchCampagnes(); // Reload the table
@@ -78,12 +107,28 @@ export default {
             this.resetCampagne();
         },
         openNewCampagne() {
-            this.resetCampagne();
             this.campagneAction = 'NEW';
             this.campagneDialog = true;
+            this.campagne = {
+                trimestre: '',
+                config: {
+                    echelle_salariale: [18.85, 24.49, 26.48],
+                    activite_heure: {
+                        'Travaux dirigés': {
+                            preparation: 1.0,
+                            travail: 2.0
+                        },
+                        'Travaux pratiques': {
+                            preparation: 2.0,
+                            travail: 3.0
+                        }
+                    }
+                },
+                cours: []
+            };
         },
         openEditCampagne(campagne) {
-            this.campagne = { ...campagne, cours: [...campagne.cours] };
+            this.campagne = campagne;
             this.campagneAction = 'EDIT';
             this.campagneDialog = true;
         },
@@ -94,6 +139,10 @@ export default {
         openReactivateCampagneDialog(campagne) {
             this.campagne = { ...campagne };
             this.reactivateCampagneDialog = true;
+        },
+        async closeCreateEditCampagne() {
+            this.campagneDialog = false;
+            await this.fetchCampagnes();
         },
         resetCampagne() {
             this.campagne = {
@@ -204,7 +253,7 @@ export default {
                             </Column>
                             <Column field="status" header="Statut" sortable style="min-width: 12rem">
                                 <template #body="slotProps">
-                                    <Tag :value="statuses.find((s) => s.label === slotProps.data.status)?.value" />
+                                    <Tag :value="statuses.find((s) => s.label === slotProps.data.status)?.value" :severity="slotProps.data.status === 'cloturee' ? 'warn' : 'success'" />
                                 </template>
                             </Column>
                         </DataTable>
@@ -239,7 +288,7 @@ export default {
             </div>
             <div class="w-1/2 flex-shrink-0 overflow-hidden">
                 <div class="card" :style="!campagneDialog ? { display: 'none' } : {}">
-                    <CreateEditCampagne v-if="campagneDialog" v-model:campagne="campagne" :campagne-action="campagneAction" @save="saveCampagne" @close="campagneDialog = false" />
+                    <CreateEditCampagne v-if="campagneDialog" v-model:campagne="campagne" :campagne-action="campagneAction" @save="saveCampagne" @close="closeCreateEditCampagne" />
                 </div>
             </div>
         </div>
