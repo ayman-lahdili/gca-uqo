@@ -35,5 +35,20 @@ export const CampagneService = {
     async approveSeanceChange(trimestre, sigle, groupe) {
         const response = await apiClient.patch(`/v1/campagne/${trimestre}/${sigle}/${groupe}/changes/approve`);
         return response.data;
+    },
+
+    async approveActiviteChange(trimestre, sigle, groupe, activite_id) {
+        const response = await apiClient.patch(`/v1/campagne/${trimestre}/${sigle}/${groupe}/${activite_id}/changes/approve`);
+        return response.data;
+    },
+
+    async updateSeance(trimestre, sigle, groupe, payload) {
+        const response = await apiClient.put(`/v1/campagne/${trimestre}/${sigle}/${groupe}`, payload);
+        return response.data;
+    },
+
+    async addCandidatureToCours(trimestre, sigle, payload) {
+        const response = await apiClient.post(`/v1/cours/${trimestre}/${sigle}/candidature`, payload);
+        return response.data;
     }
 };

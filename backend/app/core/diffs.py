@@ -62,7 +62,7 @@ class CoursDiffer:
         
     def _compare_activities(self, old_activities: List[Activite], new_activities: List[Activite]):
         def get_activity_key(act: Activite):
-            return (act.type, act.mode, act.jour, act.hr_debut, act.hr_fin, act.date_debut, act.date_fin)
+            return (act.type, act.mode, act.jour, act.hr_debut, act.hr_fin)
 
         old_acts = {get_activity_key(act): act for act in old_activities}
         new_acts = {get_activity_key(act): act for act in new_activities}
@@ -70,9 +70,17 @@ class CoursDiffer:
         for key, act in old_acts.items():
             if key not in new_acts:
                 act.change["change_type"] = ChangeType.REMOVED
+            elif act.change["change_type"] != ChangeType.ADDED:
+                act.change["change_type"] = ChangeType.UNCHANGED
+
+        print("new_acts", new_acts)
+        print("old_acts", old_acts)
 
         for key, act in new_acts.items():
             if key not in old_acts:
                 act.change["change_type"] = ChangeType.ADDED
                 act.seance = old_activities[0].seance
+                print("ADDED", act)
+            elif act.change["change_type"] != ChangeType.REMOVED:
+                act.change["change_type"] = ChangeType.UNCHANGED
 

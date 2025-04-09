@@ -5,6 +5,8 @@ import { CandidatService } from '@/service/CandidatService';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 
+const codePermanentRegex = /^[A-Z]{4}\d{8}$/;
+
 export default {
     data() {
         return {
@@ -23,6 +25,7 @@ export default {
             // Loading
             seanceTableLoading: false,
             confirmChangeLoading: false,
+            activiteTableLoading: false,
 
             // Seance
             seanceDialog: false,
@@ -32,13 +35,23 @@ export default {
             seanceChanged: false,
 
             // Candidat
-            candidateDialog: false,
-            newCandidate: {
+            candidatDialog: false,
+            candidat: {
                 prenom: '',
                 nom: '',
-                code_permanent: ''
+                code_permanent: '',
+                cycle: 1
             },
-            candidatAction: 'EDIT',
+            candidatFormState: {
+                code_permanent: false,
+                email: false,
+                nom: false,
+                prenom: false,
+                campus: false,
+                cycle: false,
+                programme: false,
+                candidature: false
+            },
 
             // Campagne Datatable
             filters: {
@@ -99,9 +112,20 @@ export default {
                 this.totalCost = this.calculateTotalCost(); // Initialize total cost
             });
         },
-        openEditSeance(seance, candidature) {
+        openEditSeance(seance, candidature, sigle) {
             this.seance = { ...seance };
             this.listeCandidature = candidature;
+            this.sigle = sigle;
+
+            this.seance.activite = this.seance.activite.map((act) => {
+                return {
+                    ...act,
+                    responsable_ids: act.responsable.map((value) => value.id_etudiant)
+                };
+            });
+
+            console.log('asd', this.seance.activite);
+
             this.optionCandidates = candidature.map((candidature) => {
                 return {
                     id: candidature.etudiant.id,
@@ -128,50 +152,65 @@ export default {
         },
         openCandidateDialog(activite) {
             this.selectedActivite = { ...activite };
-            this.candidateDialog = true;
+            this.candidatDialog = true;
         },
-        saveCandidate() {
-            if (this.newCandidate.prenom && this.newCandidate.nom && this.newCandidate.code_permanent) {
-                this.candidateDialog = false;
-                if (this.listeCandidature.find((value) => value.code_permanent === this.newCandidate.code_permanent)) {
-                    console.log('Already exist');
-                    this.toast.add({ severity: 'error', summary: 'Validation Error', detail: 'This candidate already exists.', life: 3000 });
-                } else {
-                    this.listeCandidature.push(this.newCandidate);
-                    this.listCandidatCode[this.newCandidate.code_permanent] = this.newCandidate;
-                    this.seance.activite.find((value) => value.id === this.selectedActivite.data.id).assistant = this.newCandidate;
-                    this.calculateTotalSeance();
-                    this.distribution = this.calculateDistribution(); // Update distribution
-                    this.totalActivities = this.calculateTotalActivities(); // Update total activities
-                    this.totalCost = this.calculateTotalCost(); // Update total cost
-                    this.toast.add({ severity: 'success', summary: 'Candidate Created', detail: 'New candidate has been added.', life: 3000 });
-                }
+        saveCandidat() {
+            let isValid = true;
 
-                this.newCandidate = { prenom: '', nom: '', code_permanent: '' }; // Reset fields
-            } else {
-                this.toast.add({ severity: 'error', summary: 'Validation Error', detail: 'All fields are required.', life: 3000 });
+            if (this.candidat.nom === '') {
+                this.candidatFormState.nom = true;
+                isValid = false;
             }
-        },
-        getCandidat(codePermanent) {
-            if (codePermanent.length < 12) return;
 
-            const candidat = this.listCandidatCode[codePermanent];
-            if (candidat !== undefined) {
-                this.newCandidate = { ...candidat };
-                this.candidatAction = 'EDIT';
-            } else {
-                this.newCandidate.prenom = '';
-                this.newCandidate.nom = '';
-                this.candidatAction = 'CREATE';
+            if (this.candidat.prenom === '') {
+                this.candidatFormState.prenom = true;
+                isValid = false;
             }
+
+            if (!codePermanentRegex.test(this.candidat.code_permanent)) {
+                this.candidatFormState.code_permanent = true;
+                isValid = false;
+            }
+
+            if (!isValid) {
+                this.toast.add({ severity: 'error', summary: 'Erreur de validation', detail: 'Certain champs son invalide.', life: 3000 });
+                return;
+            }
+
+            console.log(this.selectedTrimestre, this.sigle, this.candidat);
+
+            CampagneService.addCandidatureToCours(this.selectedTrimestre, this.sigle, this.candidat);
         },
         confirmSaveSeance() {
             this.changeDialog = true;
         },
-        saveSeance() {
+        async saveSeance() {
+            this.activiteTableLoading = true;
+
+            let payload = {
+                activite: this.seance.activite.map((act) => {
+                    return {
+                        id: act.id,
+                        candidature: act.responsable_ids == null ? [] : act.responsable_ids,
+                        nombre_seance: act.nombre_seance
+                    };
+                })
+            };
+
+            let response = await CampagneService.updateSeance(this.selectedTrimestre, this.sigle, this.seance.groupe, payload);
+
+            this.seance.activite = response.activite.map((act) => {
+                return {
+                    ...act,
+                    responsable_ids: act.responsable.map((value) => value.id_etudiant)
+                };
+            });
+            this.selectedSeance = this.seance;
+
+            this.fetchCampagneDetails();
             this.changeDialog = false;
-            this.seanceDialog = false;
-            this.toast.add({ severity: 'success', summary: 'Seance Saved', detail: 'Seance changes have been saved.', life: 3000 });
+            this.activiteTableLoading = false;
+            this.toast.add({ severity: 'success', summary: 'Seance sauvegardée', detail: 'Vos changement ont été sauvegardés.', life: 3000 });
             this.distribution = this.calculateDistribution(); // Update distribution
             this.totalActivities = this.calculateTotalActivities(); // Update total activities
             this.totalCost = this.calculateTotalCost(); // Update total cost
@@ -240,15 +279,15 @@ export default {
             this.selectedActivite = activity;
             this.confirmChangeDialog = true;
         },
-        confirmChangeActivity(activity) {
-            const changeType = activity.change.type;
+        async confirmChangeActivity(activity) {
+            this.confirmChangeLoading = true;
 
-            if (changeType === 'C') {
-                activity.change.status = 'C';
-            } else if (changeType === 'D') {
-                // Delete the activity from the seance
-                this.selectedSeance.activite = this.selectedSeance.activite.filter((a) => a.id !== activity.id);
-            }
+            let response = await CampagneService.approveActiviteChange(this.selectedTrimestre, this.selectedSeance.sigle, this.selectedSeance.groupe, activity.id);
+
+            this.confirmChangeLoading = false;
+            this.seance = response;
+            this.fetchCampagneDetails();
+            this.confirmChangeDialog = false;
 
             this.confirmChangeDialog = false;
             this.distribution = this.calculateDistribution(); // Update distribution
@@ -504,7 +543,7 @@ export default {
                                         <Column :exportable="false" style="min-width: 7rem">
                                             <template #body="slotProps">
                                                 <template v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'unchanged'">
-                                                    <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature)" />
+                                                    <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature, slotProps1.data.sigle)" />
                                                     <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
                                                 </template>
                                             </template>
@@ -545,29 +584,23 @@ export default {
                         :value="seance.activite"
                         :rowClass="
                             (rowData) => ({
-                                'danger-row': rowData.change !== null && rowData.change.status === 'NC' && rowData.change.type === 'D',
-                                'success-row': rowData.change !== null && rowData.change.status === 'NC' && rowData.change.type === 'C'
+                                'danger-row': rowData.change !== null && rowData.change.change_type === 'removed',
+                                'success-row': rowData.change !== null && rowData.change.change_type === 'added'
                             })
                         "
+                        :loading="activiteTableLoading"
                     >
                         <Column :exportable="false">
                             <template #body="slotProps">
                                 <Button
-                                    v-if="slotProps.data.change !== null && slotProps.data.change.type === 'D' && slotProps.data.change.status === 'NC'"
+                                    v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'removed'"
                                     icon="pi pi-exclamation-triangle"
                                     severity="danger"
                                     raised
                                     outlined
                                     @click="openConfirmChangeActivity(slotProps.data, seance)"
                                 />
-                                <Button
-                                    v-if="slotProps.data.change !== null && slotProps.data.change.type === 'C' && slotProps.data.change.status === 'NC'"
-                                    icon="pi pi-plus-circle"
-                                    severity="success"
-                                    raised
-                                    outlined
-                                    @click="openConfirmChangeActivity(slotProps.data, seance)"
-                                />
+                                <Button v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'" icon="pi pi-plus-circle" severity="success" raised outlined @click="openConfirmChangeActivity(slotProps.data, seance)" />
                             </template>
                         </Column>
                         <Column field="type" header="Type">
@@ -578,7 +611,7 @@ export default {
                         <Column field="assistant" header="Assistant">
                             <template #body="activite">
                                 <MultiSelect
-                                    v-model="activite.data.assistant"
+                                    v-model="activite.data.responsable_ids"
                                     :options="optionCandidates"
                                     placeholder="Selectionner un candidat"
                                     optionValue="id"
@@ -609,7 +642,7 @@ export default {
                         </Column>
                         <ColumnGroup type="footer">
                             <Row>
-                                <Column footer="Total :" :colspan="3" footerStyle="text-align:right" />
+                                <Column footer="Total :" :colspan="4" footerStyle="text-align:right" />
                                 <Column :footer="formatCurrency(totalSeance)" />
                             </Row>
                         </ColumnGroup>
@@ -618,28 +651,66 @@ export default {
                         <Button label="Sauvegarder" icon="pi pi-check" variant="text" class="mt-4" @click="confirmSaveSeance" />
                     </div>
                 </div>
-                <Dialog v-model:visible="candidateDialog" header="Nouveau Candidat" modal :closable="false">
-                    <div class="p-fluid">
-                        <div class="field">
-                            <label for="codePermanent">Code Permanent</label>
-                            <InputText id="codePermanent" v-model="newCandidate.code_permanent" @input="getCandidat(newCandidate.code_permanent)" />
+                <Dialog v-model:visible="candidatDialog" header="Ajouter une nouvelle candidature" :modal="true" :style="{ width: '450px' }" :closable="true" @hide="candidatFormState = {}">
+                    <div class="p-1 space-y-4">
+                        <div>
+                            <label for="codePermanent" class="block text-xs font-medium mb-1"> Code Permanent <span class="text-red-500">*</span> </label>
+                            <InputText
+                                id="codePermanent"
+                                v-model="candidat.code_permanent"
+                                maxlength="12"
+                                placeholder="EX: ABCD12345678"
+                                class="w-full p-inputtext-sm"
+                                :class="{ 'p-invalid': candidatFormState.code_permanent }"
+                                @input="
+                                    candidatFormState.code_permanent = false;
+                                    candidat.code_permanent = candidat.code_permanent.toUpperCase();
+                                "
+                            />
+                            <small v-if="candidatFormState.code_permanent" class="p-error text-xs"> Le code permanent est requis et doit suivre le format AAAA12345678. </small>
                         </div>
-                        <template v-if="newCandidate.code_permanent.length >= 12">
-                            <div class="field">
-                                <label for="prenom">Prénom</label>
-                                <InputText id="prenom" v-model="newCandidate.prenom" :disabled="candidatAction === 'EDIT'" />
+
+                        <template v-if="candidat.code_permanent && candidat.code_permanent.length === 12 && !candidatFormState.code_permanent">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label for="prenom" class="block text-xs font-medium mb-1"> Prénom <span class="text-red-500">*</span> </label>
+                                    <InputText id="prenom" v-model="candidat.prenom" class="w-full p-inputtext-sm" :class="{ 'p-invalid': candidatFormState.prenom }" @input="candidatFormState.prenom = false" />
+                                    <small v-if="candidatFormState.prenom" class="p-error text-xs"> Le prénom est requis. </small>
+                                </div>
+
+                                <div>
+                                    <label for="nom" class="block text-xs font-medium mb-1"> Nom <span class="text-red-500">*</span> </label>
+                                    <InputText id="nom" v-model="candidat.nom" class="w-full p-inputtext-sm" :class="{ 'p-invalid': candidatFormState.nom }" @input="candidatFormState.nom = false" />
+                                    <small v-if="candidatFormState.nom" class="p-error text-xs"> Le nom est requis. </small>
+                                </div>
                             </div>
-                            <div class="field">
-                                <label for="nom">Nom</label>
-                                <InputText id="nom" v-model="newCandidate.nom" :disabled="candidatAction === 'EDIT'" />
+
+                            <div>
+                                <label for="cycle" class="block text-xs font-medium mb-1"> Cycle d'étude <span class="text-red-500">*</span> </label>
+                                <Select
+                                    id="cycle"
+                                    v-model="candidat.cycle"
+                                    size="small"
+                                    :options="[1, 2, 3]"
+                                    class="w-full p-inputtext-sm"
+                                    placeholder="Sélectionnez un cycle"
+                                    :class="{ 'p-invalid': candidatFormState.cycle }"
+                                    @change="candidatFormState.cycle = false"
+                                />
+                                <small v-if="candidatFormState.cycle" class="p-error text-xs"> Le cycle est requis. </small>
                             </div>
                         </template>
+                        <template v-else>
+                            <p class="text-xs text-gray-500 text-center mt-4">Veuillez entrer un code permanent valide (4 lettres, 8 chiffres) pour continuer.</p>
+                        </template>
                     </div>
+
                     <template #footer>
-                        <Button label="Annuler" icon="pi pi-times" text @click="candidateDialog = false" />
-                        <Button label="Sauvegarder" icon="pi pi-check" @click="saveCandidate" />
+                        <Button label="Annuler" icon="pi pi-times" text class="p-button-sm" @click="candidatDialog = false" />
+                        <Button label="Suivant" icon="pi pi-check" class="p-button-sm" :disabled="!candidat.code_permanent || candidat.code_permanent.length !== 12 || candidatFormState.code_permanent" @click="saveCandidat" />
                     </template>
                 </Dialog>
+
                 <Dialog v-model:visible="changeDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
                     <div class="flex items-center gap-4">
                         <i class="pi pi-exclamation-triangle !text-3xl" />

@@ -18,20 +18,19 @@ class CandidaturePayload(BaseModel):
     nom: str
     prenom: str
     cycle: int
-    trimestre: int
     campus: str = ""
     programme: str = ""
     email: str = ""
 
 @router.post('/{trimestre}/{sigle}/candidature', response_model=CoursFullRead)
-def approve_course(trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep):
+def add_candidature_to_cours(trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep):
     cours = session.exec(select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")
 
     student = session.exec(
-        select(Etudiant).where(Etudiant.code_permanent == payload.code_permanent and Etudiant.trimestre == payload.trimestre)
+        select(Etudiant).where(Etudiant.code_permanent == payload.code_permanent and Etudiant.trimestre == trimestre)
     ).first()
 
     if not student:
@@ -44,7 +43,7 @@ def approve_course(trimestre: int, sigle: str, payload: CandidaturePayload, sess
             cycle=payload.cycle,
             campus=Campus(payload.campus) if payload.campus else Campus.non_specifie,
             programme=payload.programme,
-            trimestre=payload.trimestre,
+            trimestre=trimestre,
         )
         session.add(student)
         session.commit()
@@ -55,7 +54,7 @@ def approve_course(trimestre: int, sigle: str, payload: CandidaturePayload, sess
     candidature = Candidature(
         id_etudiant=student.id,
         sigle=sigle,
-        trimestre=payload.trimestre,
+        trimestre=trimestre,
     )
 
     session.add(candidature)

@@ -17,6 +17,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="md:w-2/12 h-52">
+                        <Divider layout="vertical" class="!hidden md:!flex"></Divider>
+                    </div>
                     <div class="flex flex-col items-center justify-center">
                         <h4>Heure par activité</h4>
                         <div v-for="(values, activity) in campagne.config.activite_heure" :key="activity" class="flex flex-col gap-2 items-center justify-center">

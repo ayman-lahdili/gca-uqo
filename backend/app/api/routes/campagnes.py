@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType
-from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteFullRead
+from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteFullRead, SeanceRead
 
 from app.core.diffs import CoursDiffer
 
@@ -37,8 +37,12 @@ class ApprovalResponse(BaseModel):
     approved: bool
 
 class ActiviteUpdateRequest(BaseModel):
-    candidatures: List[str] = []
+    id: int
+    candidature: List[int]|None = None
     nombre_seance: int | None = None
+
+class SeanceUpdateRequest(BaseModel):
+    activite: List[ActiviteUpdateRequest]
 
 @router.post("/", response_model=CampagneFullRead)
 def create_campagne(
@@ -234,6 +238,10 @@ def sync_campagne(
 
         old_cours = differ.compare()
 
+        for seance in old_cours.seance:
+            for act in seance.activite:
+                session.add(act)
+
         session.add(old_cours)
     
     session.commit()
@@ -301,8 +309,13 @@ def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep)
         approved=True
     )
 
-@router.patch('/activite/{activite_id}/changes/approve', response_model=ApprovalResponse)
-def approve_activite(activite_id: int, session: SessionDep):
+@router.patch('/{trimestre}/{sigle}/{groupe}/{activite_id}/changes/approve', response_model=SeanceRead)
+def approve_activite(trimestre: int, sigle: str, groupe: str, activite_id: int, session: SessionDep):
+    seance = session.exec(select(Seance).where(Seance.trimestre == trimestre, Seance.sigle == sigle, Seance.groupe == groupe)).first()
+
+    if not seance:
+        raise HTTPException(status_code=404, detail="Seance not found")
+    
     activite = session.exec(select(Activite).where(Activite.id == activite_id)).first()
 
     if not activite:
@@ -317,43 +330,47 @@ def approve_activite(activite_id: int, session: SessionDep):
     if approved_change.change_type == ChangeType.REMOVED:
         session.delete(activite)
 
+    session.refresh(seance, attribute_names=['activite'])
     session.commit()
     
-    return ApprovalResponse(
-        entity=activite.model_dump(),
-        change=approved_change,
-        approved=True
-    )
+    return seance
 
-@router.put('/activite/{activite_id}', response_model=ActiviteFullRead)
-def modify_activity(payload: ActiviteUpdateRequest, activite_id, session: SessionDep):
-    activite = session.exec(select(Activite).where(Activite.id == activite_id)).first()
+@router.put('/{trimestre}/{sigle}/{groupe}', response_model=SeanceRead)
+def modify_activity(trimestre: int, sigle: str, groupe: str, payload: SeanceUpdateRequest, session: SessionDep):
+    seance = session.exec(select(Seance).where(Seance.trimestre == trimestre, Seance.sigle == sigle, Seance.groupe == groupe)).first()
 
-    if not activite:
-        raise HTTPException(status_code=404, detail="Activite not found")
+    if not seance:
+        raise HTTPException(status_code=404, detail="Seance not found")
     
-    if payload.candidatures:
-        # Reset candidature
-        activite.responsable = []
-        session.add(activite)
-        session.flush()
-        
-        # Assign new list from payload
-        for candidature_id in payload.candidatures:
-            candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
+    for act in payload.activite:
+        activite = session.exec(select(Activite).where(Activite.id == act.id)).first()
 
-            if not candidature:
-                print('Candidature not found')
-                continue
-                
-            activite.responsable.append(candidature)
+        if not activite:
+            raise HTTPException(status_code=404, detail="Activite not found")
+        
+        if act.candidature is not None:
+            # Reset candidature
+            activite.responsable = []
+            session.add(activite)
+            session.flush()
+            
+            # Assign new list from payload
+            for candidature_id in act.candidature:
+                candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
+
+                if not candidature:
+                    print('Candidature not found')
+                    continue
+                    
+                activite.responsable.append(candidature)
 
             session.add(activite)
-    if payload.nombre_seance:
-        activite.nombre_seance = payload.nombre_seance
-        session.add(activite)
+        if act.nombre_seance:
+            activite.nombre_seance = act.nombre_seance
+            session.add(activite)
 
+        session.refresh(activite, attribute_names=['responsable'])
+    session.refresh(seance, attribute_names=['activite'])
     session.commit()
-    session.refresh(activite, attribute_names=['responsable'])
 
-    return activite
+    return seance

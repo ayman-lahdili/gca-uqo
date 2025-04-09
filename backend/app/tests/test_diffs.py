@@ -12,7 +12,7 @@ class TestCoursDiffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load the test data
-        with open('app/tests/files/tmp.json', 'r', encoding='utf-8') as f:
+        with open('app/tests/files/small_response.json', 'r', encoding='utf-8') as f:
             cls.test_data = json.load(f)
         
         # Initialize the parser
@@ -23,7 +23,7 @@ class TestCoursDiffer(unittest.TestCase):
 
     def setUp(self):
         # Create fresh copies for each test
-        with open('app/tests/files/tmp.json', 'r', encoding='utf-8') as f:
+        with open('app/tests/files/small_response.json', 'r', encoding='utf-8') as f:
             test_data = json.load(f)
         self.base_course = self.parser._parse_course(test_data[1])
         self.test_data = test_data  # Store for create_modified_course
