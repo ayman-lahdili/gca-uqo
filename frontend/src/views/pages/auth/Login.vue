@@ -12,12 +12,14 @@ export default {
             email: '',
             password: '',
             checked: false,
-            role: 'employee'
+            role: 'employee',
+            loading: false
         };
     },
     methods: {
         async handleSignIn() {
             if (this.email) {
+                this.loading = true;
                 // Store the email in localStorage
                 localStorage.setItem('email', this.email);
 
@@ -36,6 +38,8 @@ export default {
                     }
                 } catch (error) {
                     console.error('Error fetching trimestres:', error);
+                } finally {
+                    this.loading = false;
                 }
             } else {
                 console.error('Email is required!');
@@ -83,7 +87,7 @@ export default {
                                 <label for="rememberme1">Rester connecté</label>
                             </div>
                         </div>
-                        <Button label="Connection" class="w-full" @click="handleSignIn"></Button>
+                        <Button label="Connection" class="w-full" @click="handleSignIn" :loading="loading"></Button>
                     </div>
                 </div>
             </div>

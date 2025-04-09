@@ -57,7 +57,7 @@ export default {
                 global: { value: null, matchMode: FilterMatchMode.CONTAINS },
                 sigle: { value: null, matchMode: FilterMatchMode.CONTAINS },
                 titre: { value: null, matchMode: FilterMatchMode.CONTAINS },
-                status: { value: null, matchMode: FilterMatchMode.CONTAINS }
+                status: { value: null, matchMode: FilterMatchMode.STARTS_WITH }
             },
 
             contrat: 0,
@@ -74,7 +74,9 @@ export default {
             // Distribution
             distribution: [],
             totalActivities: 0,
-            totalCost: 0
+            totalCost: 0,
+            totalCandidatures: 0,
+            uniqueCandidates: 0
         };
     },
     mounted() {
@@ -102,6 +104,7 @@ export default {
                 this.distribution = this.calculateDistribution();
                 this.totalActivities = this.calculateTotalActivities();
                 this.totalCost = this.calculateTotalCost();
+                this.analyzeCandidatures();
             });
         },
         openEditSeance(cours, seance) {
@@ -138,6 +141,46 @@ export default {
             this.confirmChangeLoading = false;
             this.fetchCampagneDetails();
             this.confirmChangeDialog = false;
+        },
+        analyzeCandidatures() {
+            let totalCandidatures = 0;
+            let campagneData = this.campagne;
+            const uniqueCandidateIds = new Set(); // Using a Set to automatically handle uniqueness
+
+            // Validate the basic structure needed
+            if (!campagneData || !Array.isArray(campagneData.cours)) {
+                console.error('Invalid or missing campagne data/cours array.');
+                return { totalCandidatures: 0, uniqueCandidates: 0 };
+            }
+
+            // Iterate through each course in the campagne
+            campagneData.cours.forEach((course) => {
+                // Check if the course has a candidature array
+                if (Array.isArray(course.candidature)) {
+                    // Iterate through each candidature object within the course
+                    course.candidature.forEach((candidature) => {
+                        // Increment total count for every candidature found
+                        totalCandidatures++;
+
+                        // Add the student's ID to the Set.
+                        // If the ID is already present, the Set ignores it.
+                        // Check if id_etudiant exists and is valid
+                        if (candidature && candidature.hasOwnProperty('id_etudiant')) {
+                            uniqueCandidateIds.add(candidature.id_etudiant);
+                        } else {
+                            console.warn("Found a candidature entry without a valid 'id_etudiant':", candidature);
+                        }
+                    });
+                }
+            });
+
+            this.totalCandidatures = totalCandidatures;
+            this.uniqueCandidates = uniqueCandidateIds.size;
+            // Return the results
+            return {
+                totalCandidatures: totalCandidatures,
+                uniqueCandidates: uniqueCandidateIds.size // .size gives the count of unique elements in the Set
+            };
         },
         openCandidateDialog() {
             this.candidatDialog = true;
@@ -220,6 +263,7 @@ export default {
             this.distribution = this.calculateDistribution(); // Update distribution
             this.totalActivities = this.calculateTotalActivities(); // Update total activities
             this.totalCost = this.calculateTotalCost(); // Update total cost
+            this.analyzeCandidatures();
         },
         confirmCancelSeance() {
             if (this.seanceChanged) {
@@ -255,24 +299,38 @@ export default {
         },
         calculateCourseContract(course) {
             return course.seance.reduce((acc, seance) => {
-                return (
-                    acc +
-                    seance.activite.reduce((acc, activite) => {
-                        if (activite.assistant?.cycle !== undefined) {
-                            return acc + activite.nombre_seance * this.campagne.salaire[activite.assistant.cycle - 1] * (activite.type === 'TD' ? 2 + 1 : 3 + 2);
-                        }
-                        return acc;
-                    }, 0)
-                );
+                return acc + this.calculateSeanceContract(seance);
             }, 0);
         },
         calculateSeanceContract(seance) {
-            return seance.activite.reduce((acc, activite) => {
-                if (activite.assistant?.cycle !== undefined) {
-                    return acc + activite.nombre_seance * this.campagne.salaire[activite.assistant.cycle - 1] * (activite.type === 'TD' ? 2 + 1 : 3 + 2);
-                }
-                return acc;
-            }, 0);
+            let etudiant_contracts = {};
+
+            seance.activite.forEach((act) => {
+                act.responsable.forEach((resp) => {
+                    if (etudiant_contracts?.[resp.id_etudiant]?.['total'] === undefined) {
+                        etudiant_contracts[resp.id_etudiant] = { total: 0, nbr_cr_par_smn: 0 };
+                    }
+                    let hrs_prepa;
+                    let hrs_trava;
+                    etudiant_contracts[resp.id_etudiant]['nbr_cr_par_smn'] += 1;
+                    if (etudiant_contracts[resp.id_etudiant]['nbr_cr_par_smn'] === 1) {
+                        hrs_prepa = act.type === 'Travaux dirigés' ? 1 : 2;
+                        console.log(act.nombre_seance);
+                        console.log(hrs_prepa);
+                        etudiant_contracts[resp.id_etudiant]['total'] += act.nombre_seance * hrs_prepa * this.campagne.config.echelle_salariale[resp.etudiant.cycle - 1];
+                    }
+                    hrs_trava = act.type === 'Travaux dirigés' ? 2 : 3;
+
+                    etudiant_contracts[resp.id_etudiant]['total'] += act.nombre_seance * hrs_trava * this.campagne.config.echelle_salariale[resp.etudiant.cycle - 1];
+                });
+            });
+
+            let tot = Object.values(etudiant_contracts).reduce((acc, obj) => acc + obj.total, 0);
+            this.totalSeance = tot;
+
+            console.log('etudiant_nombre_seance_par_semaine', etudiant_contracts);
+
+            return tot;
         },
         countTDActivities(seance) {
             return seance.activite.filter((activite) => activite.type === 'Travaux dirigés').length;
@@ -304,6 +362,7 @@ export default {
             this.distribution = this.calculateDistribution(); // Update distribution
             this.totalActivities = this.calculateTotalActivities(); // Update total activities
             this.totalCost = this.calculateTotalCost(); // Update total cost
+            this.analyzeCandidatures();
         },
         expandAll() {
             this.expandedRows = this.campagne.cours.reduce((acc, course) => (acc[course.sigle] = true) && acc, {});
@@ -325,15 +384,18 @@ export default {
             this.campagne.cours.forEach((course) => {
                 course.seance.forEach((seance) => {
                     seance.activite.forEach((activite) => {
-                        if (activite.type === 'TD' || activite.type === 'TP') {
+                        if (activite.type === 'Travaux dirigés' || activite.type === 'Travaux pratiques') {
                             totalActivities += 1;
-                            if (activite.assistant && activite.assistant.cycle) {
-                                distribution[activite.assistant.cycle - 1].value += 1;
-                            }
+                            // console.log('totalActivities', totalActivities);
+                            activite.responsable.forEach((resp) => {
+                                distribution[resp.etudiant.cycle - 1].value += 1;
+                            });
                         }
                     });
                 });
             });
+
+            console.log(distribution);
 
             if (totalActivities !== 0) {
                 distribution.forEach((item) => {
@@ -349,7 +411,7 @@ export default {
             this.campagne.cours.forEach((course) => {
                 course.seance.forEach((seance) => {
                     seance.activite.forEach((activite) => {
-                        if (activite.type === 'TD' || activite.type === 'TP') {
+                        if (activite.type === 'Travaux dirigés' || activite.type === 'Travaux pratiques') {
                             totalActivities += 1;
                         }
                     });
@@ -411,6 +473,49 @@ export default {
                 }
             }
             return false;
+        },
+        formatTrimestre(value) {
+            value = value + '';
+            let season = value.charAt(4);
+            let year = value.substring(0, 4);
+
+            switch (season) {
+                case '1':
+                    return 'Hiver ' + year;
+                case '2':
+                    return 'Été ' + year;
+                case '3':
+                    return 'Automne ' + year;
+                default:
+                    break;
+            }
+        },
+        formatHeure(heureInt) {
+            // Basic validation for time range
+            if (typeof heureInt !== 'number' || heureInt < 0 || heureInt > 2359) {
+                console.warn('Heure invalide fournie:', heureInt);
+                return ''; // Indicate invalid time
+            }
+
+            // Extract hours and minutes
+            const heures = Math.floor(heureInt / 100);
+            const minutes = heureInt % 100;
+
+            // Ensure minutes are valid (0-59) - useful if input might be slightly off like 1680
+            if (minutes > 59) {
+                console.warn("Minutes invalides dans l'heure fournie:", heureInt);
+                return '';
+            }
+
+            // Pad with leading zeros using padStart
+            const heuresStr = String(heures).padStart(2, '0');
+            const minutesStr = String(minutes).padStart(2, '0');
+
+            // Use 'h' as the separator (common in French 24h format)
+            return `${heuresStr}h${minutesStr}`;
+        },
+        formatJour(jour_num) {
+            return ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jour_num - 1];
         }
     }
 };
@@ -427,12 +532,12 @@ export default {
                         <Fieldset class="card" legend="Statistiques" :toggleable="true" :collapsed="false">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center">
-                                    <h1>120</h1>
+                                    <h1>{{ uniqueCandidates }}</h1>
                                     <span class="ml-1 mb-0 text-sm text-muted-color font-semibold">candidats</span>
                                 </div>
                                 <div class="flex items-center">
                                     <h1>{{ formatCurrency(totalCost) }}</h1>
-                                    <span class="ml-4 mb-0 text-sm text-muted-color font-semibold">Hiver 2025</span>
+                                    <span class="ml-4 mb-0 text-sm text-muted-color font-semibold">{{ formatTrimestre(selectedTrimestre) }}</span>
                                 </div>
                             </div>
                             <MeterGroup :value="distribution">
@@ -588,7 +693,8 @@ export default {
             </div>
             <div class="w-1/2 flex-shrink-0">
                 <div class="card mt-2" :style="!seanceDialog ? { display: 'none' } : {}">
-                    <div class="flex">
+                    <div class="flex justify-between px-2">
+                        <h3>{{ selectedCours?.sigle + ' - ' + selectedSeance?.groupe + ' - ' + (selectedSeance?.campus === undefined ? '' : selectedSeance?.campus.map((campus) => getCampusName(campus)).join(', ')) }}</h3>
                         <Button icon="pi pi-times" variant="text" rounded severity="secondary" class="mb-4 mx-4" @click="confirmCancelSeance" />
                     </div>
 
@@ -613,6 +719,16 @@ export default {
                                 {{ slotProps.data.type }}
                             </template>
                         </Column>
+                        <Column field="jour" header="Jour">
+                            <template #body="slotProps">
+                                {{ formatJour(slotProps.data.jour) }}
+                            </template>
+                        </Column>
+                        <Column field="heur" header="Heures">
+                            <template #body="slotProps">
+                                {{ formatHeure(slotProps.data.hr_debut) + ' - ' + formatHeure(slotProps.data.hr_fin) }}
+                            </template>
+                        </Column>
                         <Column field="assistant" header="Assistant">
                             <template #body="tableActivite">
                                 <MultiSelect
@@ -623,7 +739,7 @@ export default {
                                     optionLabel="label"
                                     class="md:w-56"
                                     showClear
-                                    @update:modelValue="calculateTotalSeance"
+                                    @update:modelValue="calculateSeanceContract(selectedSeance)"
                                     style="min-width: 20rem"
                                     filter
                                     :disabled="tableActivite.data.change !== null && tableActivite.data.change.change_type === 'added'"
@@ -645,22 +761,11 @@ export default {
                                     mode="decimal"
                                     showButtons
                                     fluid
-                                    @update:modelValue="calculateTotalSeance"
+                                    @update:modelValue="calculateSeanceContract(selectedSeance)"
                                     :disabled="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'"
                                 />
                             </template>
                         </Column>
-                        <Column field="contrat" header="Contrat ($)">
-                            <template #body="slotProps">
-                                {{ formatCurrency(slotProps.data.assistant?.cycle !== undefined ? slotProps.data.nombre_seance * campagne.salaire[slotProps.data.assistant.cycle - 1] * (slotProps.data.type === 'TD' ? 2 : 3) : 0) }}
-                            </template>
-                        </Column>
-                        <ColumnGroup type="footer">
-                            <Row>
-                                <Column footer="Total :" :colspan="4" footerStyle="text-align:right" />
-                                <Column :footer="formatCurrency(totalSeance)" />
-                            </Row>
-                        </ColumnGroup>
                     </DataTable>
                     <div class="flex flex-row-reverse">
                         <Button label="Sauvegarder" icon="pi pi-check" variant="text" class="mt-4" @click="confirmSaveSeance" />

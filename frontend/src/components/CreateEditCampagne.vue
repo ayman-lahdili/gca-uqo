@@ -53,8 +53,8 @@
             </div>
             <template v-if="campagne.trimestre !== ''">
                 <DataTable :value="campagne.cours" tableStyle="min-width: 50rem" class="card">
-                    <Column field="sigle" header="Sigle"></Column>
-                    <Column field="titre" header="Titre"></Column>
+                    <Column field="sigle" header="Sigle" style="max-width: 5rem"></Column>
+                    <Column field="titre" header="Titre" style="max-width: 12rem"></Column>
                     <Column field="status" header="Statut">
                         <template #body="slotProps">
                             <Tag :value="slotProps.data.status === 'CONFIRME' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'CONFIRME' ? 'success' : 'warn'" />
