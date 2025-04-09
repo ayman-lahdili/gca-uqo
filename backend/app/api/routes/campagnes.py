@@ -95,24 +95,27 @@ def get_campagnes(session: SessionDep) -> Any:
         cout_total = 0
         total_assistant_par_cycle = [set(), set(), set()]
 
-        campagne_candidatures = session.exec(select(Candidature).where(Candidature.trimestre == campagne.trimestre)).all()
-        for candidature in campagne_candidatures:
-            etudiants_set: set[str] = set()
-            etudiants_type_set: set[tuple[str, ActiviteType, str]] = set()
-            for activite in candidature.activite:
-                contrat = 0
-                if activite and activite.type != ActiviteType.COURS:
-                    etudiant = candidature.etudiant
-                    activite_heure = configs.activite_heure[activite.type]
-                    taux_horaire = configs.echelle_salariale[etudiant.cycle-1]
-                    temps_paye_par_seance = activite_heure.preparation + activite_heure.travail if (etudiant.code_permanent, activite.type, candidature.sigle) not in etudiants_type_set else activite_heure.travail
-                    contrat = taux_horaire * temps_paye_par_seance * activite.nombre_seance
-                    if etudiant.code_permanent not in etudiants_set:
-                        total_assistant_par_cycle[etudiant.cycle-1].add(etudiant.code_permanent)
-                    etudiants_set.add(etudiant.code_permanent)
-                    etudiants_type_set.add((etudiant.code_permanent, activite.type, candidature.sigle))
+        for cours in campagne.cours:
+            for seance in cours.seance:
+                etudiant_contracts: dict[int, dict[str, float]] = {}
+                for activite in seance.activite:
+                    for responsable in activite.responsable:
+                        if responsable.id_etudiant not in etudiant_contracts:
+                            etudiant_contracts[responsable.id_etudiant] = {"total": 0, "nbr_seance_weekly": {ActiviteType.TD: 0, ActiviteType.TP: 0}}
+                        etudiant_contracts[responsable.id_etudiant]['nbr_seance_weekly'][activite.type] += 1
+                        
+                        hrs_prepa = configs.activite_heure[activite.type].preparation
+                        hrs_travail = configs.activite_heure[activite.type].travail
 
-                cout_total += contrat
+                        # Add Prépa time only once per n activity in a week
+                        if etudiant_contracts[responsable.id_etudiant]['nbr_seance_weekly'][activite.type] == 1:
+                            hrs_prepa = configs.activite_heure[activite.type].preparation
+                            etudiant_contracts[responsable.id_etudiant]['total'] += activite.nombre_seance * hrs_prepa * configs.echelle_salariale[responsable.etudiant.cycle - 1]
+
+                        etudiant_contracts[responsable.id_etudiant]['total'] += activite.nombre_seance * hrs_travail * configs.echelle_salariale[responsable.etudiant.cycle - 1]
+
+                tot_seance = [total['total'] for total in etudiant_contracts.values()]
+                cout_total += tot_seance[0] if len(tot_seance) > 0 else 0
 
         # Distribution des sceances
         activite_td = session.exec(select(Activite).where((Activite.type == ActiviteType.TD) & (Activite.trimestre == campagne.trimestre))).all()
@@ -345,6 +348,7 @@ def modify_activity(trimestre: int, sigle: str, groupe: str, payload: SeanceUpda
         raise HTTPException(status_code=404, detail="Seance not found")
     
     for act in payload.activite:
+        print("act",act)
         activite = session.exec(select(Activite).where(Activite.id == act.id)).first()
 
         if not activite:
@@ -358,6 +362,7 @@ def modify_activity(trimestre: int, sigle: str, groupe: str, payload: SeanceUpda
             
             # Assign new list from payload
             for candidature_id in act.candidature:
+                print("actact.candidature:",act.candidature)
                 candidature = session.exec(select(Candidature).where(Candidature.id == candidature_id)).first()
 
                 if not candidature:
