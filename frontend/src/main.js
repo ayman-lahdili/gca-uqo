@@ -20,7 +20,8 @@ app.use(PrimeVue, {
         }
     },
     locale: {
-        noFileChosenMessage: 'Aucun fichier choisie'
+        noFileChosenMessage: 'Aucun fichier choisie',
+        emptySearchMessage: 'Aucun resultat trouvé'
     }
 });
 app.use(ToastService);

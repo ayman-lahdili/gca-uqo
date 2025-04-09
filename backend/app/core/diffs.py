@@ -34,8 +34,9 @@ class CoursDiffer:
         new_seances = {seance.groupe: seance for seance in self.new.seance}
 
         for groupe, old_seance in old_seances.items():
-            old_seance.change['change_type'] = ChangeType.UNCHANGED
-            old_seance.change['value'] = {}
+            if old_seance.change.get('change_type') == ChangeType.UNCHANGED:
+                old_seance.change['change_type'] = ChangeType.UNCHANGED
+                old_seance.change['value'] = {}
         
             if groupe not in new_seances:
                 old_seance.change["change_type"] = ChangeType.REMOVED
@@ -50,10 +51,9 @@ class CoursDiffer:
         
     def _compare_single_seance(self, old_seance: Seance, new_seance: Seance):
         for field in ['groupe', 'campus', 'ressource']:
-            old_value, new_value = getattr(old_seance, field), getattr(new_seance, field)
-            if old_value == new_value:
-                old_seance.change[field] = None
-            else:
+            old_value = getattr(old_seance, field) 
+            new_value = getattr(new_seance, field)
+            if old_value != new_value:
                 old_seance.change['change_type'] = ChangeType.MODIFIED
                 old_seance.change['value'][field] = asdict(SingleDiff(old=old_value, new=new_value))
 

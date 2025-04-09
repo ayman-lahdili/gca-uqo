@@ -23,7 +23,7 @@ class Cours(SQLModel, table=True):
     cycle: int = Field(default=1)
     change: Dict[str, Any] = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
-    seance: list["Seance"] = Relationship(back_populates="cours")
+    seance: list["Seance"] = Relationship(back_populates="cours", cascade_delete=True)
     candidature: list["Candidature"] = Relationship(back_populates="cours")
 
     id_campagne: int | None = Field(default=None, foreign_key="campagne.id")
@@ -48,7 +48,7 @@ class Seance(SQLModel, table=True):
 
     cours: Cours = Relationship(back_populates="seance")
 
-    activite: list["Activite"] = Relationship(back_populates="seance")
+    activite: list["Activite"] = Relationship(back_populates="seance", cascade_delete=True)
 
 class ActiviteCandidature(SQLModel, table=True):
     id_activite: int = Field(foreign_key="activite.id", primary_key=True)

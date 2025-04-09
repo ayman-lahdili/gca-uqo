@@ -27,6 +27,7 @@ class ActiviteRead(SQLModel):
     date_debut: datetime
     date_fin: datetime
     change: Dict
+    nombre_seance: int
 
 class ActiviteFullRead(ActiviteRead):
     responsable: List["CandidatureRead"]

@@ -28,6 +28,10 @@ function formatTrimestre(value) {
             return stringValue; // Fallback
     }
 }
+
+function updateSelectedTrimestre() {
+    sharedSelectState.setSelectedValue(sharedSelectState.selectedValue);
+}
 </script>
 
 <template>
@@ -66,6 +70,7 @@ function formatTrimestre(value) {
                     <Select
                         v-if="sharedSelectState.trimestreOptions.length > 0"
                         v-model="sharedSelectState.selectedValue"
+                        @change="updateSelectedTrimestre"
                         :options="formattedTrimestreOptions"
                         optionLabel="label"
                         optionValue="value"

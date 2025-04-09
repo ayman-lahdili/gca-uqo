@@ -226,7 +226,7 @@ class UQOHoraireService:
                             date_fin=datetime.strptime(activite["DateFHor"], "%Y-%m-%dT%H:%M:%S"),
                             change={'change_type': ChangeType.UNCHANGED, 'value': {}},
                         )
-                        for activite in seance["CollActCrsHor"]
+                        for activite in seance["CollActCrsHor"] if activite["LblDescAct"] != "Cours régulier"
                     ]
                 )
                 for seance in cours["LstActCrs"]

@@ -1,4 +1,5 @@
 <script>
+import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CampagneService } from '@/service/CampagneService';
 import { CandidatService } from '@/service/CandidatService';
 import { FilterMatchMode } from '@primevue/core/api';
@@ -8,9 +9,9 @@ export default {
     data() {
         return {
             toast: useToast(),
+            sharedState: sharedSelectState,
 
             dt: null,
-            selectedTrimestre: null,
             campagne: {},
             seance: {},
             expandedRowGroups: null,
@@ -18,6 +19,10 @@ export default {
             selectedSeance: null,
             selectedActivite: null,
             value: '',
+
+            // Loading
+            seanceTableLoading: false,
+            confirmChangeLoading: false,
 
             // Seance
             seanceDialog: false,
@@ -59,15 +64,7 @@ export default {
         };
     },
     mounted() {
-        this.selectedTrimestre = 20251;
-        CampagneService.getCampagne(this.selectedTrimestre).then((data) => {
-            this.campagne = data;
-            console.log(this.campagne);
-
-            this.distribution = this.calculateDistribution();
-            this.totalActivities = this.calculateTotalActivities(); // Initialize total activities
-            this.totalCost = this.calculateTotalCost(); // Initialize total cost
-        });
+        this.fetchCampagneDetails();
         CandidatService.getCandidat().then((data) => {
             this.listCandidatCode = data.reduce((acc, candidat) => {
                 acc[candidat.code_permanent] = candidat;
@@ -75,11 +72,43 @@ export default {
             }, {});
         });
     },
+    computed: {
+        // Create a computed property to make the shared state reactive within this component
+        selectedTrimestre() {
+            return this.sharedState.selectedValue;
+        }
+    },
+    watch: {
+        // Watch the computed property 'selectedTrimestre'
+        selectedTrimestre(newValue, oldValue) {
+            console.log(`Candidatures component detected trimestre change: ${newValue}`);
+            if (newValue !== oldValue) {
+                // Fetch data when the trimestre changes
+                this.fetchCampagneDetails();
+            }
+        }
+    },
     methods: {
+        async fetchCampagneDetails() {
+            await CampagneService.getCampagne(this.selectedTrimestre).then((data) => {
+                this.campagne = data;
+                console.log(this.campagne);
+
+                this.distribution = this.calculateDistribution();
+                this.totalActivities = this.calculateTotalActivities(); // Initialize total activities
+                this.totalCost = this.calculateTotalCost(); // Initialize total cost
+            });
+        },
         openEditSeance(seance, candidature) {
             this.seance = { ...seance };
             this.listeCandidature = candidature;
-            this.optionCandidates = candidature;
+            this.optionCandidates = candidature.map((candidature) => {
+                return {
+                    id: candidature.etudiant.id,
+                    label: candidature.etudiant.nom + ', ' + candidature.etudiant.prenom + ' (' + candidature.etudiant.code_permanent + ')'
+                };
+            });
+            console.log('optionCandidates', this.optionCandidates);
             this.seanceDialog = true;
             this.seanceChanged = false;
         },
@@ -88,19 +117,13 @@ export default {
             this.seance = seance;
             this.confirmChangeDialog = true;
         },
-        confirmChange(seance) {
-            const changeType = seance.changement.type;
+        async confirmChange(seance) {
+            this.confirmChangeLoading = true;
 
-            if (changeType === 'C') {
-                seance.changement.status = 'C';
-            } else if (changeType === 'D') {
-                // Delete the seance from the list campagne.cours
-                this.campagne.cours = this.campagne.cours.filter((course) => {
-                    course.seance = course.seance.filter((s) => s.id !== seance.id);
-                    return course.seance.length > 0;
-                });
-            }
+            await CampagneService.approveSeanceChange(this.selectedTrimestre, this.sigle, this.seance.groupe);
 
+            this.confirmChangeLoading = false;
+            this.fetchCampagneDetails();
             this.confirmChangeDialog = false;
         },
         openCandidateDialog(activite) {
@@ -166,9 +189,12 @@ export default {
             this.toast.add({ severity: 'info', summary: 'Seance Cancelled', detail: 'All changes have been discarded.', life: 3000 });
         },
         async downloadCVs() {},
-        syncSchedules() {
+        async syncSchedules() {
+            this.seanceTableLoading = true;
+            await CampagneService.syncCampagne(this.selectedTrimestre).then((campagne) => (this.campagne = campagne));
             // Add your synchronization logic here
             this.toast.add({ severity: 'info', summary: 'Synchronization', detail: 'Les horaires de cours ont été synchronisés.', life: 3000 });
+            this.seanceTableLoading = false;
         },
         formatCurrency(value) {
             return value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
@@ -204,10 +230,10 @@ export default {
             }, 0);
         },
         countTDActivities(seance) {
-            return seance.activite.filter((activite) => activite.type === 'TD').length;
+            return seance.activite.filter((activite) => activite.type === 'Travaux dirigés').length;
         },
         countTPActivities(seance) {
-            return seance.activite.filter((activite) => activite.type === 'TP').length;
+            return seance.activite.filter((activite) => activite.type === 'Travaux pratiques').length;
         },
         openConfirmChangeActivity(activity, seance) {
             this.selectedSeance = seance;
@@ -215,10 +241,10 @@ export default {
             this.confirmChangeDialog = true;
         },
         confirmChangeActivity(activity) {
-            const changeType = activity.changement.type;
+            const changeType = activity.change.type;
 
             if (changeType === 'C') {
-                activity.changement.status = 'C';
+                activity.change.status = 'C';
             } else if (changeType === 'D') {
                 // Delete the activity from the seance
                 this.selectedSeance.activite = this.selectedSeance.activite.filter((a) => a.id !== activity.id);
@@ -230,7 +256,7 @@ export default {
             this.totalCost = this.calculateTotalCost(); // Update total cost
         },
         expandAll() {
-            this.expandedRows = this.campagne.cours.reduce((acc, course) => (acc[course.id] = true) && acc, {});
+            this.expandedRows = this.campagne.cours.reduce((acc, course) => (acc[course.sigle] = true) && acc, {});
         },
         collapseAll() {
             this.expandedRows = null;
@@ -243,6 +269,8 @@ export default {
             ];
 
             let totalActivities = 0;
+
+            console.log(this.campagne);
 
             this.campagne.cours.forEach((course) => {
                 course.seance.forEach((seance) => {
@@ -284,6 +312,55 @@ export default {
             return this.campagne.cours.reduce((acc, course) => {
                 return acc + this.calculateCourseContract(course);
             }, 0);
+        },
+        getCampusName(code) {
+            switch (code) {
+                case 'gatineau':
+                    return 'Gatineau';
+                case 'st-jerome':
+                    return 'Saint-Jérôme';
+                case 'non-specifie':
+                    return 'Gatineau';
+                default:
+                    break;
+            }
+        },
+        getCoursStatus(code) {
+            switch (code) {
+                case 'confirmee':
+                    return 'Confirmé';
+                case 'non_confirmee':
+                    return 'Non-disponible';
+                default:
+                    break;
+            }
+        },
+        hasAddedOrRemovedChange(dataObject) {
+            if (!dataObject || !Array.isArray(dataObject.seance)) {
+                return false; // No seance array to check
+            }
+
+            for (const seanceItem of dataObject.seance) {
+                return this.hasSeanceAddedOrRemovedChange(seanceItem);
+            }
+
+            return false;
+        },
+        hasSeanceAddedOrRemovedChange(seanceItem) {
+            const seanceChangeType = seanceItem?.change?.change_type;
+            if (seanceChangeType === 'added' || seanceChangeType === 'removed') {
+                return true; // Found the change in the seance item itself
+            }
+
+            if (Array.isArray(seanceItem?.activite)) {
+                for (const activiteItem of seanceItem.activite) {
+                    const activiteChangeType = activiteItem?.change?.change_type;
+                    if (activiteChangeType === 'added' || activiteChangeType === 'removed') {
+                        return true; // Found the change in an activite item
+                    }
+                }
+            }
+            return false;
         }
     }
 };
@@ -293,7 +370,7 @@ export default {
 </script>
 
 <template>
-    <div class="relative overflow-hidden w-full h-screen">
+    <div class="relative overflow-hidden w-full min-h-screen">
         <!-- Pages Wrapper -->
         <div class="flex w-[200%] transition-transform duration-500" :class="{ '-translate-x-1/2': seanceDialog }">
             <!-- First Page -->
@@ -323,7 +400,19 @@ export default {
                         </Fieldset>
                     </div>
                     <div class="card">
-                        <DataTable ref="dt" :value="campagne.cours" v-model:expandedRows="expandedRows" dataKey="id">
+                        <DataTable
+                            ref="dt"
+                            :value="campagne.cours"
+                            v-model:expandedRows="expandedRows"
+                            dataKey="sigle"
+                            :loading="seanceTableLoading"
+                            :rowClass="
+                                (rowData) => ({
+                                    'change-row': rowData.change !== null && hasAddedOrRemovedChange(rowData),
+                                    'no-expander': rowData.status === 'non_confirmee'
+                                })
+                            "
+                        >
                             <template #header>
                                 <div class="flex flex-wrap gap-2 items-center justify-between">
                                     <h4 class="m-0">Tableau de bord</h4>
@@ -342,48 +431,56 @@ export default {
                                     <Button text icon="pi pi-minus" label="Tous réduire" @click="collapseAll" />
                                 </div>
                             </template>
-                            <Column expander style="width: 5rem" />
-                            <Column field="sigle" header="Sigle"></Column>
-                            <Column field="titre" header="Titre"></Column>
-                            <Column field="status" header="Status"></Column>
+                            <Column expander />
+                            <Column field="sigle" header="Sigle" class="font-semibold"></Column>
+                            <Column field="titre" header="Titre" class="font-semibold"> </Column>
+                            <Column field="status" header="Status" class="font-semibold">
+                                <template #body="slotProps">
+                                    {{ getCoursStatus(slotProps.data.status) }}
+                                </template>
+                            </Column>
                             <Column field="contract" header="Contract ($)">
                                 <template #body="slotProps">
                                     {{ formatCurrency(calculateCourseContract(slotProps.data)) }}
                                 </template>
                             </Column>
                             <template #expansion="slotProps1">
-                                <div class="p-2">
+                                <div v-if="slotProps1.data.status !== 'non_confirmee'" class="p-2">
                                     <DataTable
                                         :value="slotProps1.data.seance"
                                         size="small"
                                         :rowClass="
                                             (rowData) => ({
-                                                'danger-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'D',
-                                                'success-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'C'
+                                                'danger-row': rowData.change !== null && rowData.change.change_type === 'removed',
+                                                'success-row': rowData.change !== null && rowData.change.change_type === 'added'
                                             })
                                         "
                                     >
-                                        <Column :exportable="false">
+                                        <Column :exportable="false" style="min-width: 4rem">
                                             <template #body="slotProps">
                                                 <Button
-                                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'D' && slotProps.data.changement.status === 'NC'"
+                                                    v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'removed'"
                                                     icon="pi pi-exclamation-triangle"
                                                     severity="danger"
-                                                    raised
                                                     outlined
                                                     @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
                                                 />
                                                 <Button
-                                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'C' && slotProps.data.changement.status === 'NC'"
+                                                    v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'"
                                                     icon="pi pi-plus-circle"
                                                     severity="success"
-                                                    raised
-                                                    outlined
                                                     @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
                                                 />
                                             </template>
                                         </Column>
-                                        <Column field="campus" header="Campus"></Column>
+                                        <Column field="campus" header="Campus">
+                                            <template #body="slotProps">
+                                                <span class="mr-2">
+                                                    {{ slotProps.data.campus.map((campus) => getCampusName(campus)).join(', ') }}
+                                                </span>
+                                            </template>
+                                        </Column>
+                                        <Column field="groupe" header="Gr"></Column>
                                         <Column field="ressource" header="Ressource d'enseignement">
                                             <template #body="slotProps">
                                                 {{ slotProps.data.ressource[0].nom + ', ' + slotProps.data.ressource[0].prenom }}
@@ -404,10 +501,12 @@ export default {
                                                 {{ countTPActivities(slotProps.data) }}
                                             </template>
                                         </Column>
-                                        <Column :exportable="false" style="min-width: 8rem">
+                                        <Column :exportable="false" style="min-width: 7rem">
                                             <template #body="slotProps">
-                                                <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature)" />
-                                                <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
+                                                <template v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'unchanged'">
+                                                    <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature)" />
+                                                    <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
+                                                </template>
                                             </template>
                                         </Column>
                                     </DataTable>
@@ -419,41 +518,42 @@ export default {
                         <div class="flex items-center gap-4">
                             <i class="pi pi-exclamation-triangle !text-3xl" />
                             <span v-if="selectedActivite">
-                                <span v-if="selectedActivite.changement?.type === 'C'">Cette activité a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette activité ?</span>
-                                <span v-else-if="selectedActivite.changement?.type === 'D'">Cette activité a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette activité ?</span>
+                                <span v-if="selectedActivite.change?.change_type === 'added'">Cette activité a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette activité ?</span>
+                                <span v-else-if="selectedActivite.change?.change_type === 'removed'">Cette activité a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette activité ?</span>
                             </span>
                             <span v-else-if="seance">
-                                <span v-if="seance.changement?.type === 'C'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
-                                <span v-else-if="seance.changement?.type === 'D'"
+                                <span v-if="seance.change?.change_type === 'added'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
+                                <span v-else-if="seance.change?.change_type === 'removed'"
                                     >Cette séance a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette séance ? Tous les informations sur les assignations des assistants seront supprimée.</span
                                 >
                             </span>
                         </div>
                         <template #footer>
-                            <Button label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
-                            <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(seance)" />
+                            <Button v-if="seance.change?.change_type !== 'added'" label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
+                            <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(seance)" :loading="confirmChangeLoading" />
                         </template>
                     </Dialog>
                 </div>
             </div>
             <div class="w-1/2 flex-shrink-0">
                 <div class="card mt-2" :style="!seanceDialog ? { display: 'none' } : {}">
-                    <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="confirmCancelSeance" />
-                    <Button label="Save" icon="pi pi-check" variant="text" class="mb-4" @click="confirmSaveSeance" />
+                    <div class="flex">
+                        <Button icon="pi pi-times" variant="text" rounded severity="secondary" class="mb-4 mx-4" @click="confirmCancelSeance" />
+                    </div>
 
                     <DataTable
                         :value="seance.activite"
                         :rowClass="
                             (rowData) => ({
-                                'danger-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'D',
-                                'success-row': rowData.changement !== null && rowData.changement.status === 'NC' && rowData.changement.type === 'C'
+                                'danger-row': rowData.change !== null && rowData.change.status === 'NC' && rowData.change.type === 'D',
+                                'success-row': rowData.change !== null && rowData.change.status === 'NC' && rowData.change.type === 'C'
                             })
                         "
                     >
                         <Column :exportable="false">
                             <template #body="slotProps">
                                 <Button
-                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'D' && slotProps.data.changement.status === 'NC'"
+                                    v-if="slotProps.data.change !== null && slotProps.data.change.type === 'D' && slotProps.data.change.status === 'NC'"
                                     icon="pi pi-exclamation-triangle"
                                     severity="danger"
                                     raised
@@ -461,7 +561,7 @@ export default {
                                     @click="openConfirmChangeActivity(slotProps.data, seance)"
                                 />
                                 <Button
-                                    v-if="slotProps.data.changement !== null && slotProps.data.changement.type === 'C' && slotProps.data.changement.status === 'NC'"
+                                    v-if="slotProps.data.change !== null && slotProps.data.change.type === 'C' && slotProps.data.change.status === 'NC'"
                                     icon="pi pi-plus-circle"
                                     severity="success"
                                     raised
@@ -477,26 +577,24 @@ export default {
                         </Column>
                         <Column field="assistant" header="Assistant">
                             <template #body="activite">
-                                <Select v-model="activite.data.assistant" :options="optionCandidates" placeholder="Selectionner un candidat" optionLabel="prenom" class="md:w-56" showClear @update:modelValue="calculateTotalSeance">
-                                    <template #value="slotProps">
-                                        <div v-if="slotProps.value" class="flex items-center">
-                                            <div>{{ slotProps.value.prenom }}</div>
-                                        </div>
-                                        <span v-else>
-                                            {{ slotProps.placeholder }}
-                                        </span>
-                                    </template>
-                                    <template #option="slotProps">
-                                        <div class="flex items-center">
-                                            <div>{{ slotProps.option.prenom }}</div>
-                                        </div>
-                                    </template>
+                                <MultiSelect
+                                    v-model="activite.data.assistant"
+                                    :options="optionCandidates"
+                                    placeholder="Selectionner un candidat"
+                                    optionValue="id"
+                                    optionLabel="label"
+                                    class="md:w-56"
+                                    showClear
+                                    @update:modelValue="calculateTotalSeance"
+                                    style="min-width: 20rem"
+                                    filter
+                                >
                                     <template #header>
                                         <div class="p-3">
-                                            <Button label="Add New" fluid severity="secondary" text size="small" icon="pi pi-plus" @click="openCandidateDialog(activite)" />
+                                            <Button label="Ajouter un nouveau candidat" fluid severity="secondary" text size="small" icon="pi pi-plus" @click="openCandidateDialog(activite)" />
                                         </div>
                                     </template>
-                                </Select>
+                                </MultiSelect>
                             </template>
                         </Column>
                         <Column field="nombre_seance" header="Nombre de séance">
@@ -516,6 +614,9 @@ export default {
                             </Row>
                         </ColumnGroup>
                     </DataTable>
+                    <div class="flex flex-row-reverse">
+                        <Button label="Sauvegarder" icon="pi pi-check" variant="text" class="mt-4" @click="confirmSaveSeance" />
+                    </div>
                 </div>
                 <Dialog v-model:visible="candidateDialog" header="Nouveau Candidat" modal :closable="false">
                     <div class="p-fluid">
@@ -535,8 +636,8 @@ export default {
                         </template>
                     </div>
                     <template #footer>
-                        <Button label="Cancel" icon="pi pi-times" text @click="candidateDialog = false" />
-                        <Button label="Save" icon="pi pi-check" @click="saveCandidate" />
+                        <Button label="Annuler" icon="pi pi-times" text @click="candidateDialog = false" />
+                        <Button label="Sauvegarder" icon="pi pi-check" @click="saveCandidate" />
                     </template>
                 </Dialog>
                 <Dialog v-model:visible="changeDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
@@ -573,5 +674,14 @@ export default {
 .p-datatable-tbody > tr.success-row {
     background: var(--p-button-outlined-success-hover-background);
     color: var(--p-button-text-success-color);
+}
+
+.p-datatable-tbody > tr.change-row {
+    background: var(--p-button-outlined-warn-hover-background);
+    color: var(--p-button-text-warn-color);
+}
+
+.p-datatable-table .p-datatable-tbody > tr.no-expander > td .p-datatable-row-toggle-button {
+    display: none;
 }
 </style>
