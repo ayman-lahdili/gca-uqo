@@ -51,6 +51,11 @@ def add_candidature_to_cours(trimestre: int, sigle: str, payload: CandidaturePay
 
     assert student.id is not None, "Student ID should not be None after commit."
 
+    candidature =  session.exec(select(Candidature).where((Candidature.sigle == sigle) & (Candidature.trimestre == trimestre) & (Candidature.id_etudiant == student.id))).first()
+
+    if candidature:
+        raise HTTPException(status_code=404, detail="Une candidature existe déjà pour ce candidat")
+    
     candidature = Candidature(
         id_etudiant=student.id,
         sigle=sigle,

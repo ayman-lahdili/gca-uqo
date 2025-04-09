@@ -43,6 +43,7 @@ export const CampagneService = {
     },
 
     async updateSeance(trimestre, sigle, groupe, payload) {
+        console.log('service', groupe);
         const response = await apiClient.put(`/v1/campagne/${trimestre}/${sigle}/${groupe}`, payload);
         return response.data;
     },

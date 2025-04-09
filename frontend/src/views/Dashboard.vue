@@ -1,7 +1,6 @@
 <script>
 import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CampagneService } from '@/service/CampagneService';
-import { CandidatService } from '@/service/CandidatService';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 
@@ -18,7 +17,7 @@ export default {
             seance: {},
             expandedRowGroups: null,
             expandedRows: {},
-            selectedSeance: null,
+            selectedSeance: {},
             selectedActivite: null,
             value: '',
 
@@ -55,13 +54,15 @@ export default {
 
             // Campagne Datatable
             filters: {
-                global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+                global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+                sigle: { value: null, matchMode: FilterMatchMode.CONTAINS },
+                titre: { value: null, matchMode: FilterMatchMode.CONTAINS },
+                status: { value: null, matchMode: FilterMatchMode.CONTAINS }
             },
 
-            listCandidatCode: {},
             contrat: 0,
 
-            // Contract
+            // Contrat
             totalSeance: 0,
 
             // Changes
@@ -78,25 +79,16 @@ export default {
     },
     mounted() {
         this.fetchCampagneDetails();
-        CandidatService.getCandidat().then((data) => {
-            this.listCandidatCode = data.reduce((acc, candidat) => {
-                acc[candidat.code_permanent] = candidat;
-                return acc;
-            }, {});
-        });
     },
     computed: {
-        // Create a computed property to make the shared state reactive within this component
         selectedTrimestre() {
             return this.sharedState.selectedValue;
         }
     },
     watch: {
-        // Watch the computed property 'selectedTrimestre'
         selectedTrimestre(newValue, oldValue) {
             console.log(`Candidatures component detected trimestre change: ${newValue}`);
             if (newValue !== oldValue) {
-                // Fetch data when the trimestre changes
                 this.fetchCampagneDetails();
             }
         }
@@ -108,53 +100,49 @@ export default {
                 console.log(this.campagne);
 
                 this.distribution = this.calculateDistribution();
-                this.totalActivities = this.calculateTotalActivities(); // Initialize total activities
-                this.totalCost = this.calculateTotalCost(); // Initialize total cost
+                this.totalActivities = this.calculateTotalActivities();
+                this.totalCost = this.calculateTotalCost();
             });
         },
-        openEditSeance(seance, candidature, sigle) {
-            this.seance = { ...seance };
-            this.listeCandidature = candidature;
-            this.sigle = sigle;
+        openEditSeance(cours, seance) {
+            this.selectedCours = cours;
+            this.selectedSeance = { ...seance };
 
-            this.seance.activite = this.seance.activite.map((act) => {
+            this.selectedSeance.activite = this.selectedSeance.activite.map((act) => {
                 return {
                     ...act,
                     responsable_ids: act.responsable.map((value) => value.id_etudiant)
                 };
             });
 
-            console.log('asd', this.seance.activite);
-
-            this.optionCandidates = candidature.map((candidature) => {
+            this.optionCandidates = this.selectedCours.candidature.map((candidature) => {
                 return {
                     id: candidature.etudiant.id,
                     label: candidature.etudiant.nom + ', ' + candidature.etudiant.prenom + ' (' + candidature.etudiant.code_permanent + ')'
                 };
             });
-            console.log('optionCandidates', this.optionCandidates);
-            this.seanceDialog = true;
+
             this.seanceChanged = false;
+            this.seanceDialog = true;
         },
         openConfirmChange(seance, sigle) {
             this.sigle = sigle;
-            this.seance = seance;
+            this.selectedSeance = seance;
             this.confirmChangeDialog = true;
         },
         async confirmChange(seance) {
             this.confirmChangeLoading = true;
 
-            await CampagneService.approveSeanceChange(this.selectedTrimestre, this.sigle, this.seance.groupe);
+            await CampagneService.approveSeanceChange(this.selectedTrimestre, this.sigle, this.selectedSeance.groupe);
 
             this.confirmChangeLoading = false;
             this.fetchCampagneDetails();
             this.confirmChangeDialog = false;
         },
-        openCandidateDialog(activite) {
-            this.selectedActivite = { ...activite };
+        openCandidateDialog() {
             this.candidatDialog = true;
         },
-        saveCandidat() {
+        async saveCandidat() {
             let isValid = true;
 
             if (this.candidat.nom === '') {
@@ -177,9 +165,28 @@ export default {
                 return;
             }
 
-            console.log(this.selectedTrimestre, this.sigle, this.candidat);
+            try {
+                let response = await CampagneService.addCandidatureToCours(this.selectedTrimestre, this.selectedCours.sigle, this.candidat);
 
-            CampagneService.addCandidatureToCours(this.selectedTrimestre, this.sigle, this.candidat);
+                this.selectedCours = response;
+
+                this.optionCandidates = this.selectedCours.candidature.map((candidature) => {
+                    return {
+                        id: candidature.etudiant.id,
+                        label: candidature.etudiant.nom + ', ' + candidature.etudiant.prenom + ' (' + candidature.etudiant.code_permanent + ')'
+                    };
+                });
+
+                this.candidatDialog = false;
+            } catch (error) {
+                console.log(error);
+                this.toast.add({
+                    severity: 'error',
+                    summary: 'Erreur',
+                    detail: error?.response?.data?.detail || 'Une erreur est survenue.',
+                    life: 3000
+                });
+            }
         },
         confirmSaveSeance() {
             this.changeDialog = true;
@@ -188,7 +195,7 @@ export default {
             this.activiteTableLoading = true;
 
             let payload = {
-                activite: this.seance.activite.map((act) => {
+                activite: this.selectedSeance.activite.map((act) => {
                     return {
                         id: act.id,
                         candidature: act.responsable_ids == null ? [] : act.responsable_ids,
@@ -197,15 +204,14 @@ export default {
                 })
             };
 
-            let response = await CampagneService.updateSeance(this.selectedTrimestre, this.sigle, this.seance.groupe, payload);
+            let response = await CampagneService.updateSeance(this.selectedTrimestre, this.selectedCours.sigle, this.selectedSeance.groupe, payload);
 
-            this.seance.activite = response.activite.map((act) => {
+            this.selectedSeance.activite = response.activite.map((act) => {
                 return {
                     ...act,
                     responsable_ids: act.responsable.map((value) => value.id_etudiant)
                 };
             });
-            this.selectedSeance = this.seance;
 
             this.fetchCampagneDetails();
             this.changeDialog = false;
@@ -240,7 +246,7 @@ export default {
         },
         calculateTotalSeance() {
             // Calculate total contrat
-            this.totalSeance = this.seance.activite.reduce((acc, activite) => {
+            this.totalSeance = this.selectedSeance.activite.reduce((acc, activite) => {
                 if (activite.assistant?.cycle !== undefined) {
                     return acc + activite.nombre_seance * this.campagne.salaire[activite.assistant.cycle - 1] * (activite.type === 'TD' ? 2 + 1 : 3 + 2);
                 }
@@ -274,8 +280,7 @@ export default {
         countTPActivities(seance) {
             return seance.activite.filter((activite) => activite.type === 'Travaux pratiques').length;
         },
-        openConfirmChangeActivity(activity, seance) {
-            this.selectedSeance = seance;
+        openConfirmChangeActivity(activity) {
             this.selectedActivite = activity;
             this.confirmChangeDialog = true;
         },
@@ -285,7 +290,13 @@ export default {
             let response = await CampagneService.approveActiviteChange(this.selectedTrimestre, this.selectedSeance.sigle, this.selectedSeance.groupe, activity.id);
 
             this.confirmChangeLoading = false;
-            this.seance = response;
+            this.selectedSeance = response;
+            this.selectedSeance.activite = response.activite.map((act) => {
+                return {
+                    ...act,
+                    responsable_ids: act.responsable.map((value) => value.id_etudiant)
+                };
+            });
             this.fetchCampagneDetails();
             this.confirmChangeDialog = false;
 
@@ -403,9 +414,6 @@ export default {
         }
     }
 };
-
-// TODO: add a unamed column for each row that will contain a button for when there are changes that occured that need to be treated
-// List all the type of differences that can occure and how they should be stored and treated (graphically)
 </script>
 
 <template>
@@ -444,10 +452,12 @@ export default {
                             :value="campagne.cours"
                             v-model:expandedRows="expandedRows"
                             dataKey="sigle"
+                            removableSort
                             :loading="seanceTableLoading"
+                            :filters="filters"
+                            :globalFilterFields="['sigle', 'titre', 'status']"
                             :rowClass="
                                 (rowData) => ({
-                                    'change-row': rowData.change !== null && hasAddedOrRemovedChange(rowData),
                                     'no-expander': rowData.status === 'non_confirmee'
                                 })
                             "
@@ -462,7 +472,8 @@ export default {
                                         <InputText v-model="filters['global'].value" placeholder="Recherche..." />
                                     </IconField>
                                     <div>
-                                        <Button label="Synchroniser les horaires" icon="pi pi-refresh" class="p-button-primary mr-2" @click="syncSchedules" />
+                                        <Button label="Synchroniser les horaires" icon="pi pi-sparkles" class="p-button-primary mr-2" @click="syncSchedules" />
+                                        <Button icon="pi pi-refresh" class="mt-2" outlined @click="fetchCampagneDetails" />
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap justify-start gap-2">
@@ -478,20 +489,21 @@ export default {
                                     {{ getCoursStatus(slotProps.data.status) }}
                                 </template>
                             </Column>
-                            <Column field="contract" header="Contract ($)">
+                            <Column field="contrat" header="Contrat" class="font-semibold" sortable>
                                 <template #body="slotProps">
                                     {{ formatCurrency(calculateCourseContract(slotProps.data)) }}
                                 </template>
                             </Column>
-                            <template #expansion="slotProps1">
-                                <div v-if="slotProps1.data.status !== 'non_confirmee'" class="p-2">
+                            <template #expansion="tableCampagne">
+                                <div v-if="tableCampagne.data.status !== 'non_confirmee'" class="p-2">
                                     <DataTable
-                                        :value="slotProps1.data.seance"
+                                        :value="tableCampagne.data.seance"
                                         size="small"
                                         :rowClass="
                                             (rowData) => ({
                                                 'danger-row': rowData.change !== null && rowData.change.change_type === 'removed',
-                                                'success-row': rowData.change !== null && rowData.change.change_type === 'added'
+                                                'success-row': rowData.change !== null && rowData.change.change_type === 'added',
+                                                'change-row': rowData.change !== null && rowData.change.change_type !== 'added' && rowData.change.change_type !== 'removed' && hasSeanceAddedOrRemovedChange(rowData)
                                             })
                                         "
                                     >
@@ -502,13 +514,13 @@ export default {
                                                     icon="pi pi-exclamation-triangle"
                                                     severity="danger"
                                                     outlined
-                                                    @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
+                                                    @click="openConfirmChange(slotProps.data, tableCampagne.data.sigle)"
                                                 />
                                                 <Button
                                                     v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'"
                                                     icon="pi pi-plus-circle"
                                                     severity="success"
-                                                    @click="openConfirmChange(slotProps.data, slotProps1.data.sigle)"
+                                                    @click="openConfirmChange(slotProps.data, tableCampagne.data.sigle)"
                                                 />
                                             </template>
                                         </Column>
@@ -525,11 +537,6 @@ export default {
                                                 {{ slotProps.data.ressource[0].nom + ', ' + slotProps.data.ressource[0].prenom }}
                                             </template>
                                         </Column>
-                                        <Column field="contract" header="Contract ($)">
-                                            <template #body="slotProps">
-                                                {{ formatCurrency(calculateSeanceContract(slotProps.data)) }}
-                                            </template>
-                                        </Column>
                                         <Column field="td_activities" header="Nombre de TD">
                                             <template #body="slotProps">
                                                 {{ countTDActivities(slotProps.data) }}
@@ -540,11 +547,16 @@ export default {
                                                 {{ countTPActivities(slotProps.data) }}
                                             </template>
                                         </Column>
+                                        <Column field="contrat" header="Contrat">
+                                            <template #body="slotProps">
+                                                {{ formatCurrency(calculateSeanceContract(slotProps.data)) }}
+                                            </template>
+                                        </Column>
                                         <Column :exportable="false" style="min-width: 7rem">
                                             <template #body="slotProps">
                                                 <template v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'unchanged'">
-                                                    <Button icon="pi pi-pencil" rounded @click="openEditSeance(slotProps.data, slotProps1.data.candidature, slotProps1.data.sigle)" />
-                                                    <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
+                                                    <Button icon="pi pi-pencil" :severity="hasSeanceAddedOrRemovedChange(slotProps.data) ? 'warn' : 'primary'" outlined rounded @click="openEditSeance(tableCampagne.data, slotProps.data)" />
+                                                    <Button icon="pi pi-download" rounded outlined severity="secondary" class="ml-2" @click="downloadCVs" />
                                                 </template>
                                             </template>
                                         </Column>
@@ -560,16 +572,16 @@ export default {
                                 <span v-if="selectedActivite.change?.change_type === 'added'">Cette activité a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette activité ?</span>
                                 <span v-else-if="selectedActivite.change?.change_type === 'removed'">Cette activité a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette activité ?</span>
                             </span>
-                            <span v-else-if="seance">
-                                <span v-if="seance.change?.change_type === 'added'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
-                                <span v-else-if="seance.change?.change_type === 'removed'"
+                            <span v-else-if="selectedSeance">
+                                <span v-if="selectedSeance.change?.change_type === 'added'">Cette séance a été ajoutée dans l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer l'ajout de cette séance ?</span>
+                                <span v-else-if="selectedSeance.change?.change_type === 'removed'"
                                     >Cette séance a été retirée de l'horaire de l'UQO. Êtes-vous sûr de vouloir confirmer la suppréssion de cette séance ? Tous les informations sur les assignations des assistants seront supprimée.</span
                                 >
                             </span>
                         </div>
                         <template #footer>
-                            <Button v-if="seance.change?.change_type !== 'added'" label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
-                            <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(seance)" :loading="confirmChangeLoading" />
+                            <Button v-if="selectedSeance.change?.change_type !== 'added'" label="Non, je veux m'assurer de ne pas perdre d'information" icon="pi pi-times" text @click="confirmChangeDialog = false" />
+                            <Button label="Oui, confirmer" icon="pi pi-check" @click="selectedActivite ? confirmChangeActivity(selectedActivite) : confirmChange(selectedSeance)" :loading="confirmChangeLoading" />
                         </template>
                     </Dialog>
                 </div>
@@ -581,7 +593,7 @@ export default {
                     </div>
 
                     <DataTable
-                        :value="seance.activite"
+                        :value="selectedSeance.activite"
                         :rowClass="
                             (rowData) => ({
                                 'danger-row': rowData.change !== null && rowData.change.change_type === 'removed',
@@ -591,16 +603,9 @@ export default {
                         :loading="activiteTableLoading"
                     >
                         <Column :exportable="false">
-                            <template #body="slotProps">
-                                <Button
-                                    v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'removed'"
-                                    icon="pi pi-exclamation-triangle"
-                                    severity="danger"
-                                    raised
-                                    outlined
-                                    @click="openConfirmChangeActivity(slotProps.data, seance)"
-                                />
-                                <Button v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'" icon="pi pi-plus-circle" severity="success" raised outlined @click="openConfirmChangeActivity(slotProps.data, seance)" />
+                            <template #body="tableActivite">
+                                <Button v-if="tableActivite.data.change !== null && tableActivite.data.change.change_type === 'removed'" icon="pi pi-exclamation-triangle" severity="danger" @click="openConfirmChangeActivity(tableActivite.data)" />
+                                <Button v-if="tableActivite.data.change !== null && tableActivite.data.change.change_type === 'added'" icon="pi pi-plus-circle" severity="success" @click="openConfirmChangeActivity(tableActivite.data)" />
                             </template>
                         </Column>
                         <Column field="type" header="Type">
@@ -609,9 +614,9 @@ export default {
                             </template>
                         </Column>
                         <Column field="assistant" header="Assistant">
-                            <template #body="activite">
+                            <template #body="tableActivite">
                                 <MultiSelect
-                                    v-model="activite.data.responsable_ids"
+                                    v-model="tableActivite.data.responsable_ids"
                                     :options="optionCandidates"
                                     placeholder="Selectionner un candidat"
                                     optionValue="id"
@@ -621,10 +626,11 @@ export default {
                                     @update:modelValue="calculateTotalSeance"
                                     style="min-width: 20rem"
                                     filter
+                                    :disabled="tableActivite.data.change !== null && tableActivite.data.change.change_type === 'added'"
                                 >
                                     <template #header>
                                         <div class="p-3">
-                                            <Button label="Ajouter un nouveau candidat" fluid severity="secondary" text size="small" icon="pi pi-plus" @click="openCandidateDialog(activite)" />
+                                            <Button label="Ajouter un nouveau candidat" fluid severity="secondary" text size="small" icon="pi pi-plus" @click="openCandidateDialog" />
                                         </div>
                                     </template>
                                 </MultiSelect>
@@ -632,7 +638,16 @@ export default {
                         </Column>
                         <Column field="nombre_seance" header="Nombre de séance">
                             <template #body="slotProps">
-                                <InputNumber v-model="slotProps.data.nombre_seance" :min="0" :max="15" mode="decimal" showButtons fluid @update:modelValue="calculateTotalSeance" />
+                                <InputNumber
+                                    v-model="slotProps.data.nombre_seance"
+                                    :min="0"
+                                    :max="15"
+                                    mode="decimal"
+                                    showButtons
+                                    fluid
+                                    @update:modelValue="calculateTotalSeance"
+                                    :disabled="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'"
+                                />
                             </template>
                         </Column>
                         <Column field="contrat" header="Contrat ($)">
