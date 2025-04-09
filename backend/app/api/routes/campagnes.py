@@ -97,18 +97,20 @@ def get_campagnes(session: SessionDep) -> Any:
 
         campagne_candidatures = session.exec(select(Candidature).where(Candidature.trimestre == campagne.trimestre)).all()
         for candidature in campagne_candidatures:
-            contrat = 0
             etudiants_set: set[str] = set()
+            etudiants_type_set: set[tuple[str, ActiviteType, str]] = set()
             for activite in candidature.activite:
+                contrat = 0
                 if activite and activite.type != ActiviteType.COURS:
                     etudiant = candidature.etudiant
                     activite_heure = configs.activite_heure[activite.type]
                     taux_horaire = configs.echelle_salariale[etudiant.cycle-1]
-                    temps_paye_par_seance = activite_heure.preparation + activite_heure.travail if etudiant.code_permanent in etudiants_set else activite_heure.travail
+                    temps_paye_par_seance = activite_heure.preparation + activite_heure.travail if (etudiant.code_permanent, activite.type, candidature.sigle) not in etudiants_type_set else activite_heure.travail
                     contrat = taux_horaire * temps_paye_par_seance * activite.nombre_seance
                     if etudiant.code_permanent not in etudiants_set:
                         total_assistant_par_cycle[etudiant.cycle-1].add(etudiant.code_permanent)
                     etudiants_set.add(etudiant.code_permanent)
+                    etudiants_type_set.add((etudiant.code_permanent, activite.type, candidature.sigle))
 
                 cout_total += contrat
 

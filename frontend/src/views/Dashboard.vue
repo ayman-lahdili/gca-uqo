@@ -315,8 +315,6 @@ export default {
                     etudiant_contracts[resp.id_etudiant]['nbr_cr_par_smn'] += 1;
                     if (etudiant_contracts[resp.id_etudiant]['nbr_cr_par_smn'] === 1) {
                         hrs_prepa = act.type === 'Travaux dirigés' ? 1 : 2;
-                        console.log(act.nombre_seance);
-                        console.log(hrs_prepa);
                         etudiant_contracts[resp.id_etudiant]['total'] += act.nombre_seance * hrs_prepa * this.campagne.config.echelle_salariale[resp.etudiant.cycle - 1];
                     }
                     hrs_trava = act.type === 'Travaux dirigés' ? 2 : 3;
@@ -324,6 +322,8 @@ export default {
                     etudiant_contracts[resp.id_etudiant]['total'] += act.nombre_seance * hrs_trava * this.campagne.config.echelle_salariale[resp.etudiant.cycle - 1];
                 });
             });
+
+            console.log(etudiant_contracts);
 
             let tot = Object.values(etudiant_contracts).reduce((acc, obj) => acc + obj.total, 0);
             this.totalSeance = tot;
