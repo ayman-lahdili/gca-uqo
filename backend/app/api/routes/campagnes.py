@@ -57,7 +57,6 @@ def create_campagne(
     campagne = Campagne(
         trimestre=payload.trimestre,
         config=CampagneConfig(**payload.config).model_dump()
-        # echelle_salariale=payload.echelle_salariale or [18.85, 24.49, 26.48],
     )
     session.add(campagne)
     session.commit()
@@ -89,19 +88,19 @@ def get_campagnes(session: SessionDep) -> Any:
     result = []
     for campagne in campagnes:
         configs = CampagneConfig(**campagne.config)
-        # Create a CampagneRead with computed stats
 
         # Cout total
         cout_total = 0
-        total_assistant_par_cycle = [set(), set(), set()]
+        total_assistant_par_cycle: tuple[set[int], set[int], set[int]] = (set(), set(), set())
 
         for cours in campagne.cours:
             for seance in cours.seance:
                 etudiant_contracts_total: dict[int, float] = {}
                 etudiant_contracts_nbr_seance_weekly: dict[int, dict[ActiviteType, int]] = {}
-                etudiant_contracts: dict[int, dict[str, float]] = {}
                 for activite in seance.activite:
                     for responsable in activite.responsable:
+                        total_assistant_par_cycle[responsable.etudiant.cycle - 1].add(responsable.id_etudiant)
+
                         if responsable.id_etudiant not in etudiant_contracts_total:
                             etudiant_contracts_total[responsable.id_etudiant] = 0
                             etudiant_contracts_nbr_seance_weekly[responsable.id_etudiant] = {ActiviteType.TD: 0, ActiviteType.TP: 0}
