@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship, DATETIME
 from app.schemas.enums import Note, ActiviteMode, ActiviteType, CoursStatus, CampagneStatus, Campus, ChangeType, CampagneConfig
 from sqlalchemy.ext.mutable import MutableDict, MutableList
-from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import ForeignKeyConstraint, select, and_
 
 class Campagne(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -24,7 +24,13 @@ class Cours(SQLModel, table=True):
     change: Dict[str, Any] = Field(default={'change_type': ChangeType.UNCHANGED, 'value': {}}, sa_column=Column(MutableDict.as_mutable(JSON))) 
 
     seance: list["Seance"] = Relationship(back_populates="cours", cascade_delete=True)
-    candidature: list["Candidature"] = Relationship(back_populates="cours")
+    candidature: list["Candidature"] = Relationship( # Forward ref needs quotes
+        sa_relationship_kwargs=dict(
+            primaryjoin="and_(Cours.sigle == Candidature.sigle, Cours.trimestre == Candidature.trimestre)",
+            foreign_keys="[Candidature.sigle, Candidature.trimestre]",
+            viewonly=True,
+        )
+    )
 
     id_campagne: int | None = Field(default=None, foreign_key="campagne.id")
     campagne: Campagne = Relationship(back_populates="cours")
@@ -100,19 +106,9 @@ class Etudiant(SQLModel, table=True):
     candidature: list["Candidature"] = Relationship(back_populates="etudiant", cascade_delete=True)
     
 class Candidature(SQLModel, table=True):
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ['sigle', 'trimestre'],
-            ['cours.sigle', 'cours.trimestre'],
-        ),
-    )
-
     id: Optional[int] | None = Field(default=None, primary_key=True)
     id_etudiant: int = Field(foreign_key="etudiant.id")
-    # id_activite: int | None = Field(default=None, foreign_key="activite.id")
     note: Note = Field(default=Note.non_specifie)
-
-    cours: Cours = Relationship(back_populates="candidature")
 
     etudiant: Etudiant = Relationship(back_populates="candidature")
     activite: list["Activite"] = Relationship(
@@ -122,4 +118,3 @@ class Candidature(SQLModel, table=True):
     sigle: str
     titre: str = ""
     trimestre: int
-

@@ -97,25 +97,28 @@ def get_campagnes(session: SessionDep) -> Any:
 
         for cours in campagne.cours:
             for seance in cours.seance:
+                etudiant_contracts_total: dict[int, float] = {}
+                etudiant_contracts_nbr_seance_weekly: dict[int, dict[ActiviteType, int]] = {}
                 etudiant_contracts: dict[int, dict[str, float]] = {}
                 for activite in seance.activite:
                     for responsable in activite.responsable:
-                        if responsable.id_etudiant not in etudiant_contracts:
-                            etudiant_contracts[responsable.id_etudiant] = {"total": 0, "nbr_seance_weekly": {ActiviteType.TD: 0, ActiviteType.TP: 0}}
-                        etudiant_contracts[responsable.id_etudiant]['nbr_seance_weekly'][activite.type] += 1
+                        if responsable.id_etudiant not in etudiant_contracts_total:
+                            etudiant_contracts_total[responsable.id_etudiant] = 0
+                            etudiant_contracts_nbr_seance_weekly[responsable.id_etudiant] = {ActiviteType.TD: 0, ActiviteType.TP: 0}
+                        etudiant_contracts_nbr_seance_weekly[responsable.id_etudiant][activite.type] += 1
                         
                         hrs_prepa = configs.activite_heure[activite.type].preparation
                         hrs_travail = configs.activite_heure[activite.type].travail
 
                         # Add Prépa time only once per n activity in a week
-                        if etudiant_contracts[responsable.id_etudiant]['nbr_seance_weekly'][activite.type] == 1:
+                        if etudiant_contracts_nbr_seance_weekly[responsable.id_etudiant][activite.type] == 1:
                             hrs_prepa = configs.activite_heure[activite.type].preparation
-                            etudiant_contracts[responsable.id_etudiant]['total'] += activite.nombre_seance * hrs_prepa * configs.echelle_salariale[responsable.etudiant.cycle - 1]
+                            etudiant_contracts_total[responsable.id_etudiant] += activite.nombre_seance * hrs_prepa * configs.echelle_salariale[responsable.etudiant.cycle - 1]
 
-                        etudiant_contracts[responsable.id_etudiant]['total'] += activite.nombre_seance * hrs_travail * configs.echelle_salariale[responsable.etudiant.cycle - 1]
+                        etudiant_contracts_total[responsable.id_etudiant] += activite.nombre_seance * hrs_travail * configs.echelle_salariale[responsable.etudiant.cycle - 1]
 
-                tot_seance = [total['total'] for total in etudiant_contracts.values()]
-                cout_total += tot_seance[0] if len(tot_seance) > 0 else 0
+                tot_seance = sum(etudiant_contracts_total.values())
+                cout_total += tot_seance
 
         # Distribution des sceances
         activite_td = session.exec(select(Activite).where((Activite.type == ActiviteType.TD) & (Activite.trimestre == campagne.trimestre))).all()

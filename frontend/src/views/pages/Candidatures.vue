@@ -383,8 +383,8 @@ export default {
                             >
                         </div>
                         <template #footer>
-                            <Button label="No" icon="pi pi-times" text @click="deleteCandidatDialog = false" />
-                            <Button label="Yes" icon="pi pi-check" @click="deleteCandidat" />
+                            <Button label="Non" icon="pi pi-times" text @click="deleteCandidatDialog = false" />
+                            <Button label="Oui" icon="pi pi-check" @click="deleteCandidat" />
                         </template>
                     </Dialog>
                 </div>
@@ -526,8 +526,8 @@ export default {
                             </div>
                         </div>
                         <template #footer>
-                            <Button label="No" icon="pi pi-times" text @click="candidatureDialog = false" />
-                            <Button label="Yes" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="candidature.sigle.length < 7" />
+                            <Button label="Non" icon="pi pi-times" text @click="candidatureDialog = false" />
+                            <Button label="Oui" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="candidature.sigle.length < 7" />
                         </template>
                     </Dialog>
                     <Dialog v-model:visible="deleteCandidatureDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
@@ -538,8 +538,8 @@ export default {
                             >
                         </div>
                         <template #footer>
-                            <Button label="No" icon="pi pi-times" text @click="deleteCandidatureDialog = false" />
-                            <Button label="Yes" icon="pi pi-check" @click="deleteCandidature" />
+                            <Button label="Non" icon="pi pi-times" text @click="deleteCandidatureDialog = false" />
+                            <Button label="Oui" icon="pi pi-check" @click="deleteCandidature" />
                         </template>
                     </Dialog>
 
@@ -555,8 +555,8 @@ export default {
                             >
                         </div>
                         <template #footer>
-                            <Button label="No" icon="pi pi-times" text @click="confirmCandidatDialog = false" />
-                            <Button label="Yes" icon="pi pi-check" @click="saveCandidat(candidat)" />
+                            <Button label="Non" icon="pi pi-times" text @click="confirmCandidatDialog = false" />
+                            <Button label="Oui" icon="pi pi-check" @click="saveCandidat(candidat)" />
                         </template>
                     </Dialog>
                 </div>

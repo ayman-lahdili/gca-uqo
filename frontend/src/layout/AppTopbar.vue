@@ -59,7 +59,7 @@ function updateSelectedTrimestre() {
                     />
                 </svg>
 
-                <span>GCA-UQO</span>
+                <!-- <span>GCA-UQO</span> -->
             </router-link>
             <span class="mx-5 text-sm text-muted-color font-semibold"> Département d'informatique et d'ingénierie </span>
         </div>

@@ -30,7 +30,7 @@
                                     <InputNumber v-model="values.preparation" mode="decimal" :min="0" placeholder="Préparation" />
                                 </div>
                                 <div>
-                                    <label class="text-sm mb-1 block">Durée de la scéance</label>
+                                    <label class="text-sm mb-1 block">Durée de la séance</label>
                                     <InputNumber v-model="values.travail" mode="decimal" :min="0" placeholder="Travail" />
                                 </div>
                             </div>
@@ -57,7 +57,7 @@
                     <Column field="titre" header="Titre" style="max-width: 12rem"></Column>
                     <Column field="status" header="Statut">
                         <template #body="slotProps">
-                            <Tag :value="slotProps.data.status === 'CONFIRME' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'CONFIRME' ? 'success' : 'warn'" />
+                            <Tag :value="slotProps.data.status === 'confirmee' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'confirmee' ? 'success' : 'warn'" />
                         </template>
                     </Column>
                     <Column :exportable="false" style="max-width: 1rem">
@@ -82,8 +82,8 @@
                 </span>
             </div>
             <template #footer>
-                <Button label="No" icon="pi pi-times" text @click="confirmCampagneDialog = false" />
-                <Button label="Yes" icon="pi pi-check" @click="saveCampagne(campagne)" />
+                <Button label="Non" icon="pi pi-times" text @click="confirmCampagneDialog = false" />
+                <Button label="Oui" icon="pi pi-check" @click="saveCampagne(campagne)" />
             </template>
         </Dialog>
 
@@ -93,8 +93,8 @@
                 <span>Êtes-vous sûr de vouloir quitter ? Les modifications non enregistrées seront perdues.</span>
             </div>
             <template #footer>
-                <Button label="No" icon="pi pi-times" text @click="showWarningDialog = false" />
-                <Button label="Yes" icon="pi pi-check" @click="confirmCloseCampagneDialog" />
+                <Button label="Non" icon="pi pi-times" text @click="showWarningDialog = false" />
+                <Button label="Oui" icon="pi pi-check" @click="confirmCloseCampagneDialog" />
             </template>
         </Dialog>
     </div>

@@ -837,8 +837,8 @@ export default {
                         <span>Êtes-vous sûr de vouloir enregistrer les modifications apportées à cette séance ?</span>
                     </div>
                     <template #footer>
-                        <Button label="No" icon="pi pi-times" text @click="changeDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" @click="saveSeance" />
+                        <Button label="Non" icon="pi pi-times" text @click="changeDialog = false" />
+                        <Button label="Oui" icon="pi pi-check" @click="saveSeance" />
                     </template>
                 </Dialog>
                 <Dialog v-model:visible="confirmCancelDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
@@ -847,8 +847,8 @@ export default {
                         <span>Êtes-vous sûr de vouloir annuler les modifications apportées à cette séance ? Toutes les modifications seront perdues.</span>
                     </div>
                     <template #footer>
-                        <Button label="No" icon="pi pi-times" text @click="confirmCancelDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" @click="cancelSeance" />
+                        <Button label="Non" icon="pi pi-times" text @click="confirmCancelDialog = false" />
+                        <Button label="Oui" icon="pi pi-check" @click="cancelSeance" />
                     </template>
                 </Dialog>
             </div>

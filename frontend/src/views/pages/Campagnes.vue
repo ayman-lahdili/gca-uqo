@@ -309,8 +309,8 @@ export default {
                         >
                     </div>
                     <template #footer>
-                        <Button label="No" icon="pi pi-times" text @click="concludeCampagneDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" @click="concludeCampagne" />
+                        <Button label="Non" icon="pi pi-times" text @click="concludeCampagneDialog = false" />
+                        <Button label="Oui" icon="pi pi-check" @click="concludeCampagne" />
                     </template>
                 </Dialog>
 
@@ -322,8 +322,8 @@ export default {
                         >
                     </div>
                     <template #footer>
-                        <Button label="No" icon="pi pi-times" text @click="reactivateCampagneDialog = false" />
-                        <Button label="Yes" icon="pi pi-check" @click="reactivateCampagne" />
+                        <Button label="Non" icon="pi pi-times" text @click="reactivateCampagneDialog = false" />
+                        <Button label="Oui" icon="pi pi-check" @click="reactivateCampagne" />
                     </template>
                 </Dialog>
             </div>
