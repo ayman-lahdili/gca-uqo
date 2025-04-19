@@ -1,8 +1,8 @@
 <template>
     <div>
-        <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
-        <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="closeCandidatDialog" />
-        <div class="max-w-4xl mx-auto p-4">
+        <div class="max-w-4xl mx-auto p-4 card">
+            <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
+            <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="closeCandidatDialog" />
             <!-- Form divided into clear sections -->
             <div class="space-y-8">
                 <!-- Section 1: Identification -->

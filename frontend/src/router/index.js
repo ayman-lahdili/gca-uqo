@@ -17,6 +17,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/formulaire/:trimestre',
+            name: 'StudentForm',
+            component: () => import('@/views/pages/student/StudentForm.vue'),
+            meta: { requiresAuth: false }
+        },
+        {
             path: '/',
             component: AppLayout,
             meta: { requiresAuth: true }, // Authentification requise pour les pages sous Layout
