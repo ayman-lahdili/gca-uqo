@@ -51,5 +51,22 @@ export const CampagneService = {
     async addCandidatureToCours(trimestre, sigle, payload) {
         const response = await apiClient.post(`/v1/cours/${trimestre}/${sigle}/candidature`, payload);
         return response.data;
+    },
+
+    async getCours(trimestre) {
+        const response = await apiClient.get(`/v1/campagne/${trimestre}/cours`);
+        return response.data;
+    },
+
+    async downloadCVs(trimestre, sigle) {
+        const response = await apiClient
+            .post(`/v1/cours/${trimestre}/${sigle}/resumes`, null, {
+                responseType: 'blob' // Important for file downloads
+            })
+            .catch((error) => {
+                return null;
+            });
+
+        return response === null ? response : response.data;
     }
 };

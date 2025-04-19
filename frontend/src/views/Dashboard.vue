@@ -277,7 +277,34 @@ export default {
             this.seanceDialog = false;
             this.toast.add({ severity: 'info', summary: 'Seance Cancelled', detail: 'All changes have been discarded.', life: 3000 });
         },
-        async downloadCVs() {},
+        async downloadCVs(sigle) {
+            // Get IDs of selected students
+            const response = await CampagneService.downloadCVs(this.selectedTrimestre, sigle);
+
+            if (response === null) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Aucune candidature', life: 3000 });
+                return;
+            }
+
+            // Create a blob URL for the file
+            const url = window.URL.createObjectURL(response);
+
+            // Create and click a download link
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `resumes_${this.trimestre}.zip`);
+
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(link);
+            }, 100);
+
+            this.$toast.success(`Downloaded resumes for ${selectedIds.length} students.`);
+        },
         async syncSchedules() {
             this.seanceTableLoading = true;
             await CampagneService.syncCampagne(this.selectedTrimestre).then((campagne) => (this.campagne = campagne));
@@ -377,6 +404,8 @@ export default {
                 { label: 'Cycle 3', color: '#60a5fa', value: 0 }
             ];
 
+            const processedStudentIds = new Set();
+
             let totalActivities = 0;
 
             console.log(this.campagne);
@@ -388,7 +417,12 @@ export default {
                             totalActivities += 1;
                             // console.log('totalActivities', totalActivities);
                             activite.responsable.forEach((resp) => {
-                                distribution[resp.etudiant.cycle - 1].value += 1;
+                                const studentId = resp?.etudiant?.id;
+                                if (studentId && !processedStudentIds.has(studentId)) {
+                                    processedStudentIds.add(studentId);
+                                    // console.log('studentId', studentId);
+                                    distribution[resp.etudiant.cycle - 1].value += 1;
+                                }
                             });
                         }
                     });
@@ -545,6 +579,16 @@ export default {
                                     <div class="flex justify-between mt-4 mb-2 relative">
                                         <span></span>
                                         <span :style="{ width: totalPercent + '%' }" class="absolute text-right">{{ totalPercent }}%</span>
+                                    </div>
+                                </template>
+                                <template #label="{ value }">
+                                    <div class="flex justify-between mt-4 mb-2 relative">
+                                        <ol class="p-metergroup-label-list p-metergroup-label-list-horizontal" data-pc-section="labellist">
+                                            <li v-for="v in value" class="p-metergroup-label" data-pc-section="label">
+                                                <span class="p-metergroup-label-marker" data-pc-section="labelmarker" :style="{ 'background-color': v.color }"></span
+                                                ><span class="p-metergroup-label-text" data-pc-section="labeltext">{{ v.label }} ({{ (v.value * totalCandidatures) / 100 }})</span>
+                                            </li>
+                                        </ol>
                                         <span class="font-medium">{{ totalActivities }} séances de TD et TP</span>
                                     </div>
                                 </template>
@@ -661,7 +705,7 @@ export default {
                                             <template #body="slotProps">
                                                 <template v-if="slotProps.data.change !== null && slotProps.data.change.change_type === 'unchanged'">
                                                     <Button icon="pi pi-pencil" :severity="hasSeanceAddedOrRemovedChange(slotProps.data) ? 'warn' : 'primary'" outlined rounded @click="openEditSeance(tableCampagne.data, slotProps.data)" />
-                                                    <Button icon="pi pi-download" rounded outlined severity="secondary" class="ml-2" @click="downloadCVs" />
+                                                    <Button icon="pi pi-download" rounded outlined severity="secondary" class="ml-2" @click="downloadCVs(slotProps.data.sigle)" />
                                                 </template>
                                             </template>
                                         </Column>

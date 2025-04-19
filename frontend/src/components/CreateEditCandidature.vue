@@ -1,8 +1,15 @@
 <template>
     <div>
         <div class="max-w-4xl mx-auto p-4 card">
-            <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
-            <Button label="Cancel" icon="pi pi-times" variant="text" class="mb-4" @click="closeCandidatDialog" />
+            <template v-if="type === 'ETUD'">
+                <h3>Formulaire de candidature - {{ formatTrimestre(trimestre) }}</h3>
+            </template>
+            <template v-else="type === 'GEST'">
+                <div class="flex items-center justify-between gap-2 mb-4">
+                    <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
+                    <Button label="Annuler" icon="pi pi-times" variant="text" class="mb-4" @click="closeCandidatDialog" />
+                </div>
+            </template>
             <!-- Form divided into clear sections -->
             <div class="space-y-8">
                 <!-- Section 1: Identification -->
@@ -35,7 +42,7 @@
                             <!-- Email -->
                             <div>
                                 <label for="email" class="block text-sm font-medium mb-1">Adresse courriel de l'UQO</label>
-                                <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :invalid="candidatFormState.email" @change="candidatFormState.email = false" />
+                                <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :invalid="candidatFormState.email" @change="candidatFormState.email = false" :disabled="type === 'ETUD'" />
                             </div>
                         </div>
 
@@ -43,8 +50,8 @@
                         <div class="pt-2">
                             <label class="block text-sm font-medium mb-2">Curriculum Vitae</label>
                             <div class="flex flex-col sm:flex-row gap-2 justify-between">
-                                <Button label="Télécharger CV actuel" icon="pi pi-download" class="flex-1" outlined />
-                                <FileUpload ref="fileupload" mode="basic" name="cv" url="/" accept="application/pdf" :maxFileSize="5000000" @upload="onUpload" chooseLabel="Téléverser CV" class="flex-1" />
+                                <Button label="Télécharger CV actuel" icon="pi pi-download" class="flex-1" outlined @click="downloadResume" />
+                                <FileUpload ref="fileupload" mode="basic" name="cv" accept="application/pdf" :maxFileSize="5000000" @upload="onUpload" chooseLabel="Téléverser CV" class="flex-1" />
                             </div>
                         </div>
                     </div>
@@ -89,13 +96,11 @@
 
                 <!-- Section 3: Course Selection -->
                 <section class="rounded-lg p-6">
-                    <h2 class="text-xl font-bold mb-4 border-b pb-2">Sélection des cours d'intérêt</h2>
-
                     <!-- Course table -->
                     <DataTable :value="candidat.candidature" class="p-datatable-sm" responsiveLayout="scroll" stripedRows>
                         <template #header>
                             <div class="flex flex-wrap gap-2 items-center justify-between">
-                                <h4 class="m-0">Candidatures</h4>
+                                <h2 class="text-xl pt-2">Sélection des cours d'intérêt</h2>
                                 <Button label="Ajouter un cours" icon="pi pi-plus" severity="secondary" class="mr-2" @click="openNewCandidature" />
                             </div>
                         </template>
@@ -124,17 +129,36 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="sigle" class="block text-sm font-medium mb-1">Sigle</label>
-                        <InputText v-model="candidature.sigle" class="w-full mt-2" type="text" placeholder="Sigle" maxlength="8" :disabled="candidatureAction === 'EDIT'" />
+                        <AutoComplete
+                            v-model="candidature"
+                            class="w-full mt-2"
+                            type="text"
+                            placeholder="Sigle"
+                            forceSelection
+                            dropdown
+                            :suggestions="campagneCoursesResults"
+                            optionLabel="sigle"
+                            optionValue="sigle"
+                            @complete="searchCourse"
+                            :disabled="candidatureAction === 'EDIT'"
+                        >
+                            <template #option="slotProps">
+                                <div class="flex items-center">
+                                    <div>{{ slotProps.option.sigle }} - {{ slotProps.option.titre }}</div>
+                                </div>
+                            </template>
+                        </AutoComplete>
+                        <!-- <InputText v-model="candidature.sigle" class="w-full mt-2" type="text" placeholder="Sigle" maxlength="8" :disabled="candidatureAction === 'EDIT'" /> -->
                     </div>
-                    <div>
+                    <div v-if="candidature?.note !== undefined">
                         <label for="note" class="block text-sm font-medium mb-1">Note</label>
-                        <Select v-model="candidature.note" class="w-full mt-2" :options="['A+', 'A', 'A-', 'B+', 'B', 'B-']" type="text" placeholder="Note" />
+                        <Select v-model="candidature.note" class="w-full mt-2" :options="['A+', 'A', 'A-', 'B+', 'B', 'B-']" default="B+" type="text" placeholder="Note" />
                     </div>
                 </div>
             </div>
             <template #footer>
                 <Button label="Non" icon="pi pi-times" text @click="candidatureDialog = false" />
-                <Button label="Oui" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="candidature.sigle.length < 7" />
+                <Button label="Oui" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="(candidatureAction === 'NEW' && candidature?.sigle?.length < 7) || campagneCoursesResults.length === 0" />
             </template>
         </Dialog>
         <Dialog v-model:visible="deleteCandidatureDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
@@ -170,6 +194,7 @@
 </template>
 
 <script>
+import { CampagneService } from '@/service/CampagneService';
 import { CandidatService } from '@/service/CandidatService';
 import { UQOService } from '@/service/UQOService';
 import { useToast } from 'primevue/usetoast';
@@ -201,6 +226,12 @@ export default {
         trimestre: {
             type: String,
             required: true
+        },
+        type: {
+            type: String,
+            required: false,
+            default: 'GEST',
+            validator: (value) => ['GEST', 'ETUD'].includes(value)
         }
     },
     emits: ['save', 'close'],
@@ -210,6 +241,8 @@ export default {
             showWarningDialog: false,
             hasUnsavedChanges: false,
             courses: [],
+            campagneCourses: [],
+            campagneCoursesResults: [],
             programmes: [],
             candidatFormState: {
                 code_permanent: false,
@@ -231,6 +264,7 @@ export default {
     },
     mounted() {
         UQOService.getCours().then((courses) => (this.courses = courses));
+        CampagneService.getCours(this.trimestre).then((campagneCourses) => (this.campagneCourses = campagneCourses.map((course) => ({ ...course, note: 'B+' }))));
         this.getListProgramme(this.candidat.cycle);
     },
     methods: {
@@ -254,6 +288,7 @@ export default {
             }
         },
         onUpload() {
+            console.log('File uploaded successfully');
             this.toast.add({ severity: 'info', summary: 'Succès', detail: 'Fichier Téléversé', life: 3000 });
         },
         async getListProgramme(cycle) {
@@ -268,11 +303,6 @@ export default {
             }
         },
         openNewCandidature() {
-            this.candidature = {
-                sigle: '',
-                titre: '',
-                note: 'B+'
-            };
             this.candidatureAction = 'NEW';
             this.candidatureDialog = true;
         },
@@ -317,6 +347,7 @@ export default {
         },
         confirmEditCandidature(candidature) {
             console.log(this.candidature, candidature == candidature, candidature === candidature, this.candidatAction);
+
             if (this.candidatureAction === 'NEW') {
                 if (this.candidat.candidature.find((val) => val.sigle === candidature.sigle) !== undefined) {
                     this.toast.add({ severity: 'warn', summary: 'Attention', detail: 'Une candidature pour ce cours existe déjà pour ce candidat', life: 2000 });
@@ -344,37 +375,45 @@ export default {
             this.loading = true;
             try {
                 if (this.candidatAction === 'NEW') {
-                    await CandidatService.createCandidature({
-                        code_permanent: candidat.code_permanent,
-                        email: candidat.email,
-                        nom: candidat.nom,
-                        prenom: candidat.prenom,
-                        cycle: candidat.cycle,
-                        campus: candidat.campus,
-                        programme: candidat.programme, // Send the code
-                        trimestre: this.trimestre,
-                        courses: candidat.candidature.map((c) => ({
-                            sigle: c.sigle,
-                            titre: c.titre,
-                            note: c.note
-                        }))
-                    });
+                    console.log(this.$refs.fileupload.files?.[0]);
+                    await CandidatService.createCandidature(
+                        {
+                            code_permanent: candidat.code_permanent,
+                            email: candidat.email,
+                            nom: candidat.nom,
+                            prenom: candidat.prenom,
+                            cycle: candidat.cycle,
+                            campus: candidat.campus,
+                            programme: candidat.programme, // Send the code
+                            trimestre: this.trimestre,
+                            courses: candidat.candidature.map((c) => ({
+                                sigle: c.sigle,
+                                titre: c.titre,
+                                note: c.note
+                            }))
+                        },
+                        this.$refs.fileupload.files?.[0]
+                    );
                 } else if (this.candidatAction === 'EDIT') {
-                    await CandidatService.updateCandidature(candidat.id, {
-                        code_permanent: candidat.code_permanent,
-                        email: candidat.email,
-                        nom: candidat.nom,
-                        prenom: candidat.prenom,
-                        cycle: candidat.cycle,
-                        campus: candidat.campus,
-                        programme: candidat.programme, // Send the code
-                        trimestre: candidat.trimestre,
-                        courses: candidat.candidature.map((c) => ({
-                            sigle: c.sigle,
-                            titre: c.titre,
-                            note: c.note
-                        }))
-                    });
+                    await CandidatService.updateCandidature(
+                        candidat.id,
+                        {
+                            code_permanent: candidat.code_permanent,
+                            email: candidat.email,
+                            nom: candidat.nom,
+                            prenom: candidat.prenom,
+                            cycle: candidat.cycle,
+                            campus: candidat.campus,
+                            programme: candidat.programme, // Send the code
+                            trimestre: candidat.trimestre,
+                            courses: candidat.candidature.map((c) => ({
+                                sigle: c.sigle,
+                                titre: c.titre,
+                                note: c.note
+                            }))
+                        },
+                        this.$refs.fileupload.files?.[0]
+                    );
                 }
                 this.$emit('save', candidat);
                 this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Candidat sauvegardé', life: 3000 });
@@ -385,6 +424,67 @@ export default {
             }
             this.confirmCandidatDialog = false;
             this.candidatDialog = false;
+        },
+        formatTrimestre(value) {
+            value = value + '';
+            let season = value.charAt(4);
+            let year = value.substring(0, 4);
+
+            switch (season) {
+                case '1':
+                    return 'Hiver ' + year;
+                case '2':
+                    return 'Été ' + year;
+                case '3':
+                    return 'Automne ' + year;
+                default:
+                    break;
+            }
+        },
+        searchCourse(event) {
+            const query = event.query.toLowerCase();
+            this.campagneCoursesResults = this.campagneCourses.filter((course) => course.sigle.toLowerCase().includes(query) || course.titre.toLowerCase().includes(query));
+        },
+        deleteCandidature() {
+            this.candidat.candidature = this.candidat.candidature.filter((c) => c.sigle !== this.candidature.sigle);
+            this.deleteCandidatureDialog = false;
+            this.toast.add({ severity: 'success', summary: 'Successful', detail: 'Candidature supprimée', life: 3000 });
+        },
+        async downloadResume() {
+            try {
+                // Get a direct reference to the file from the API
+                const response = await CandidatService.downloadResume(this.candidat.id, this.trimestre);
+
+                if (response === null) {
+                    this.toast.add({ severity: 'error', summary: 'Erreur', detail: "Aucun CV n'a été enregistré pour ce candidat", life: 3000 });
+                    return;
+                }
+
+                // Create a blob URL for the file
+                const blob = new Blob([response], { type: 'application/pdf' });
+                const url = window.URL.createObjectURL(blob);
+
+                // Create and click a download link
+                const link = document.createElement('a');
+                link.href = url;
+
+                // Set a descriptive filename
+                const filename = `${this.trimestre}_${this.candidat.code_permanent || this.candidat.id}_CV.pdf`;
+                link.setAttribute('download', filename);
+
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(link);
+                }, 100);
+            } catch (error) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Aucun CV de retrouver', life: 3000 });
+                return;
+            }
         }
     }
 };

@@ -56,7 +56,7 @@ export default {
         <span class="text-surface-500 dark:text-surface-400 block mb-8">Syle d'affichage</span>
         <AppConfigurator></AppConfigurator>
         <div class="flex justify-end gap-2">
-            <Button type="button" label="Cancel" severity="secondary" @click="visible = false"></Button>
+            <Button type="button" label="Annuler" severity="secondary" @click="visible = false"></Button>
             <Button type="button" label="Save" @click="visible = false"></Button>
         </div>
     </Dialog>

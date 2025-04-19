@@ -252,8 +252,38 @@ export default {
         exportCSV() {
             this.dt.exportCSV();
         },
-        downloadCVs() {
-            console.log('downloadCVs');
+        async downloadResume(student) {
+            const id = student.id;
+            const codePermanent = student.code_permanent;
+            // Get a direct reference to the file from the API
+            const response = await CandidatService.downloadResume(id, this.trimestre);
+
+            if (response === null) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: "Aucun CV n'a été enregistré pour ce candidat", life: 3000 });
+                return;
+            }
+
+            // Create a blob URL for the file
+            const blob = new Blob([response], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+
+            // Create and click a download link
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set a descriptive filename
+            const filename = `${this.trimestre}_${codePermanent || id}_CV.pdf`;
+            link.setAttribute('download', filename);
+
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(link);
+            }, 100);
         },
 
         // File upload
@@ -336,7 +366,7 @@ export default {
                         <Column :exportable="false" style="max-width: 5rem">
                             <template #body="slotProps">
                                 <Button icon="pi pi-pencil" rounded @click="openEditCandidat(slotProps.data)" />
-                                <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadCVs" />
+                                <Button icon="pi pi-download" rounded severity="secondary" class="ml-2" @click="downloadResume(slotProps.data)" />
                                 <Button icon="pi pi-trash" rounded severity="danger" class="ml-2" @click="confirmDeleteCandidat(slotProps.data)" />
                             </template>
                         </Column>

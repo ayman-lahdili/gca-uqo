@@ -33,6 +33,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic-settings" },
     { name = "pytest" },
+    { name = "python-multipart" },
     { name = "requests" },
     { name = "sqlmodel" },
 ]
@@ -43,6 +44,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
 ]

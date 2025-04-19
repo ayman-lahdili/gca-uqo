@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType
-from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteFullRead, SeanceRead
+from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, ActiviteFullRead, SeanceRead, CoursRead
 
 from app.core.diffs import CoursDiffer
 
@@ -165,6 +165,17 @@ def get_campagne_by_trimestre(
         raise HTTPException(status_code=404, detail="Campagne not found")
     
     return campagne
+
+@router.get("/{trimestre}/cours", response_model=List[CoursRead])
+def get_cours_by_trimestre(
+    trimestre: int,
+    session: SessionDep,
+) -> Any:
+    campagne = session.exec(select(Campagne).where(Campagne.trimestre == trimestre)).first()
+    if not campagne:
+        raise HTTPException(status_code=404, detail="Campagne not found")
+
+    return campagne.cours
 
 @router.put("/{trimestre}", response_model=CampagneFullRead)
 def update_campagne(

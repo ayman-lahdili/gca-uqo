@@ -4,10 +4,18 @@ import { CampagneService } from '@/service/CampagneService';
 
 export default {
     props: {
+        trimestre: {
+            type: String,
+            required: false
+        },
         checked: {
             required: true,
             type: Boolean,
             default: false
+        },
+        email: {
+            required: false,
+            type: String
         }
     },
     components: {
@@ -38,6 +46,22 @@ export default {
             } else {
                 console.error('Email is required!');
             }
+        },
+        formatTrimestre(value) {
+            value = value + '';
+            let season = value.charAt(4);
+            let year = value.substring(0, 4);
+
+            switch (season) {
+                case '1':
+                    return 'Hiver ' + year;
+                case '2':
+                    return 'Été ' + year;
+                case '3':
+                    return 'Automne ' + year;
+                default:
+                    break;
+            }
         }
     }
 };
@@ -67,8 +91,8 @@ export default {
                                 fill="var(--primary-color)"
                             />
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">GCA-UQO</div>
-                        <span class="text-muted-color font-medium">Connectez vous</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Formulaire de candidature</div>
+                        <span class="text-muted-color font-medium">{{ formatTrimestre(trimestre) }}</span>
                     </div>
 
                     <div>
