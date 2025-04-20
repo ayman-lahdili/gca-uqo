@@ -1,0 +1,91 @@
+from abc import ABC, abstractmethod
+from typing import BinaryIO, Optional, Union
+import io
+import zipfile
+import os
+from fastapi import UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
+from pathlib import Path
+
+import shutil
+
+class StorageProvider(ABC):
+    """Abstract base class for storage providers"""
+    
+    @abstractmethod
+    def save_file(self, filename: str, upload: UploadFile) -> None:
+        """Save content to a file at the specified path"""
+        pass
+    
+    @abstractmethod
+    def read_file(self, filename: str) -> FileResponse:
+        """Read content from a file at the specified path"""
+        pass
+    
+    @abstractmethod
+    def delete_file(self, filename: str) -> None:
+        """Delete a file at the specified path"""
+        pass
+    
+    @abstractmethod
+    def file_exists(self, filename: str) -> None:
+        """Check if a file exists at the specified path"""
+        pass
+
+    @abstractmethod
+    def zip_files(self, zip_file_name: str, filenames: list[str]) -> StreamingResponse:
+        """Create a zip file from a list of filenames"""
+        pass
+
+
+class LocalStorageProvider(StorageProvider):
+
+    def __init__(self, base_directory: str) -> None:
+        self.base_directory: Path = Path(base_directory)
+        Path(self.base_directory).mkdir(parents=True, exist_ok=True)
+
+    def save_file(self, filename: str, upload: UploadFile) -> None:
+        file_path = self.base_directory / filename
+
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(upload.file, buffer)
+
+    def read_file(self, filename: str) -> FileResponse:
+        found_files = list(self.base_directory.glob(filename))
+
+        if not found_files:
+            raise FileNotFoundError(f"File not found: {filename}")
+
+        return FileResponse(
+            path=found_files[0],
+            filename=filename,
+            media_type='application/octet-stream'
+        )
+
+    def delete_file(self, filename: str) -> None:
+        return super().delete_file(filename)
+    
+    def file_exists(self, filename: str) -> None:
+        return super().file_exists(filename)
+
+    def zip_files(self, zip_file_name: str, filenames: list[str]) -> StreamingResponse:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_name in filenames:
+                found_files = list(self.base_directory.glob(file_name))
+
+                if not found_files:
+                    # Skip students with no resume file, or optionally raise an error
+                    continue
+
+                resume_path = found_files[0]
+                zip_file.write(resume_path, arcname=resume_path)
+        zip_buffer.seek(0)
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename={zip_file_name}.zip"
+            }
+        )

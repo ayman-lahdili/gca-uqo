@@ -104,6 +104,11 @@ class Etudiant(SQLModel, table=True):
     trimestre: int
 
     candidature: list["Candidature"] = Relationship(back_populates="etudiant", cascade_delete=True)
+
+    @property
+    def get_file_name(self):
+        return f'{self.trimestre}_{self.nom}_{self.prenom}_{self.id}.pdf'
+    
     
 class Candidature(SQLModel, table=True):
     id: Optional[int] | None = Field(default=None, primary_key=True)

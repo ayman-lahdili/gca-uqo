@@ -1,11 +1,12 @@
 from collections.abc import Generator
-from typing import Annotated
+from typing import Annotated, Type
 
 from fastapi import Depends, Request, Path, HTTPException
 from sqlmodel import Session
 
 from app.core.db import engine
 from app.core.uqo import UQOHoraireService
+from app.core.file import StorageProvider, LocalStorageProvider
 
 def get_db() -> Generator[Session, None, None]:
     with Session(engine) as session:
@@ -30,3 +31,8 @@ async def get_horaire_service(
     return UQOHoraireService(trimestre=trimestre)
 
 HoraireDep = Annotated[UQOHoraireService, Depends(get_horaire_service)]
+
+async def get_storage_provider() -> StorageProvider:
+    return LocalStorageProvider("./uploaded_resumes")
+
+StorageDep = Annotated[StorageProvider, Depends(get_storage_provider)]

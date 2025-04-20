@@ -77,7 +77,7 @@ export const CandidatService = {
 
     async downloadResume(studentId, trimestre) {
         const response = await apiClient
-            .get(`/v1/candidature/${trimestre}/${studentId}/resume`, null, {
+            .get(`/v1/candidature/${trimestre}/${studentId}/resume`, {
                 responseType: 'blob' // Important for file downloads
             })
             .catch((error) => {

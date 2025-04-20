@@ -1,5 +1,4 @@
 <script>
-import CreateEditCandidature from '@/components/CreateEditCandidature.vue';
 import { sharedSelectState } from '@/layout/composables/sharedSelectedState';
 import { CandidatService } from '@/service/CandidatService';
 import { UQOService } from '@/service/UQOService';
@@ -253,37 +252,37 @@ export default {
             this.dt.exportCSV();
         },
         async downloadResume(student) {
-            const id = student.id;
-            const codePermanent = student.code_permanent;
-            // Get a direct reference to the file from the API
-            const response = await CandidatService.downloadResume(id, this.trimestre);
+            try {
+                const id = student.id;
+                const codePermanent = student.code_permanent;
+                const filename = `${this.trimestre}_${codePermanent || id}_CV.pdf`;
 
-            if (response === null) {
-                this.toast.add({ severity: 'error', summary: 'Erreur', detail: "Aucun CV n'a été enregistré pour ce candidat", life: 3000 });
-                return;
+                const response = await CandidatService.downloadResume(id, this.trimestre);
+
+                // Create a blob URL directly from the response data
+                const blob = new Blob([response]);
+                const url = window.URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(link);
+                }, 100);
+            } catch (error) {
+                console.error('Error downloading resume:', error);
+                this.toast.add({
+                    severity: 'error',
+                    summary: 'Erreur',
+                    detail: "Aucun CV n'a été enregistré pour ce candidat ou erreur de téléchargement",
+                    life: 3000
+                });
             }
-
-            // Create a blob URL for the file
-            const blob = new Blob([response], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-
-            // Create and click a download link
-            const link = document.createElement('a');
-            link.href = url;
-
-            // Set a descriptive filename
-            const filename = `${this.trimestre}_${codePermanent || id}_CV.pdf`;
-            link.setAttribute('download', filename);
-
-            // Trigger download
-            document.body.appendChild(link);
-            link.click();
-
-            // Clean up
-            setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(link);
-            }, 100);
         },
 
         // File upload

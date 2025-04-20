@@ -1,22 +1,15 @@
-import uuid
-import shutil # Import shutil for file operations
-import json # Import json for parsing courses string
-from typing import Any, List, Optional
-from pathlib import Path
+import json
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form # Add File, UploadFile, Form
 from fastapi.responses import FileResponse
-from sqlmodel import func, select
+from sqlmodel import select
 from pydantic import BaseModel, TypeAdapter, ValidationError # Import for parsing JSON string
 
-from app.api.deps import SessionDep
+from app.api.deps import SessionDep, StorageDep
 from app.schemas.read import EtudiantFullRead
-from app.models import Campagne, Cours, CampagneStatus, Etudiant, Candidature, Campus
+from app.models import Etudiant, Candidature, Campus
 from app.schemas.enums import Note
-
-# --- Configuration ---
-UPLOAD_DIRECTORY = Path("./uploaded_resumes") # Directory to store uploaded files
-Path(UPLOAD_DIRECTORY).mkdir(parents=True, exist_ok=True) # Create dir if it doesn't exist
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 
@@ -25,21 +18,10 @@ class CandidatureCoursRequestItem(BaseModel):
     titre: str = ""
     note: Note = Note.non_specifie
 
-class CandidaturePayload(BaseModel):
-    code_permanent: str
-    nom: str
-    prenom: str
-    cycle: int
-    trimestre: int
-    campus: str = ""
-    programme: str = ""
-    email: str = ""
-    courses: List[CandidatureCoursRequestItem] | None = None
-
 @router.post("/", response_model=EtudiantFullRead)
 async def create_candidature(
         session: SessionDep,
-        # --- Student Data as Form Fields ---
+        storage: StorageDep,
         code_permanent: str = Form(...),
         nom: str = Form(...),
         prenom: str = Form(...),
@@ -48,9 +30,7 @@ async def create_candidature(
         campus: str = Form(""),
         programme: str = Form(""),
         email: str = Form(""),
-        # --- Courses as JSON String in Form Field ---
         courses_json: str = Form("[]", description="JSON string representation of the courses list"),
-        # --- Resume File ---
         resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)")
     ): 
     # --- Parse Courses JSON ---
@@ -98,22 +78,9 @@ async def create_candidature(
     # --- Save the Uploaded Resume File ---
     if resume:
         try:
-            # Create a unique filename using student ID and trimester
-            file_extension = Path(resume.filename).suffix if resume.filename else ".unknown"
-            # Sanitize filename components if necessary (basic example here)
-            safe_student_id = str(new_student.id)
-            safe_trimestre = str(trimestre)
-            resume_filename = f"{safe_student_id}_{safe_trimestre}_resume{file_extension}"
-            destination_path = UPLOAD_DIRECTORY / resume_filename
-
-            with destination_path.open("wb") as buffer:
-                shutil.copyfileobj(resume.file, buffer)
-
+            storage.save_file(new_student.get_file_name, resume)
         except Exception as e:
-            # Important: If file saving fails after student creation, you might want
-            # to roll back the student creation or implement a cleanup mechanism.
-            # For simplicity, we just raise an error here.
-            session.rollback() # Rollback student creation if file save fails
+            session.rollback()
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to save resume file: {e}. Student creation rolled back."
@@ -147,46 +114,25 @@ async def create_candidature(
 async def download_candidature_resume(
     student_id: int,
     trimestre: int,
-    session: SessionDep # Inject session to verify student existence (optional but good)
+    session: SessionDep,
+    storage: StorageDep,
 ):
     """
     Downloads the resume file associated with a specific student ID and trimester.
     """
-    # Optional: Verify the student actually exists for this trimester
     student = session.exec(
         select(Etudiant).where(Etudiant.id == student_id, Etudiant.trimestre == trimestre)
     ).first()
-    if not student:
-         raise HTTPException(
-            status_code=404,
-            detail=f"No student found with ID {student_id} for trimester {trimestre}."
-        )
+    
+    assert student, f"No student found with ID {student_id} for trimester {trimestre}."
 
-    # --- Find the resume file ---
-    # Search for files matching the pattern: {student_id}_{trimestre}_resume.*
-    file_pattern = f"{student_id}_{trimestre}_resume.*"
-    found_files = list(UPLOAD_DIRECTORY.glob(file_pattern))
-
-    if not found_files:
+    try:
+        return storage.read_file(student.get_file_name)
+    except FileNotFoundError:
         raise HTTPException(
             status_code=404,
             detail=f"Resume file not found for student {student_id}, trimester {trimestre}."
         )
-
-    if len(found_files) > 1:
-        # This shouldn't happen with the chosen naming convention, but handle defensively
-        print(f"Warning: Multiple resume files found for pattern {file_pattern}. Serving the first one: {found_files[0]}")
-
-    resume_path = found_files[0]
-
-    # --- Return the file using FileResponse ---
-    # Suggest a filename for the download dialog (can use the stored name)
-    # Use application/octet-stream for generic download, or try to guess MIME type
-    return FileResponse(
-        path=resume_path,
-        filename=resume_path.name, # Suggests the stored filename for download
-        media_type='application/octet-stream' # Force download
-    )
 
 @router.get("/", response_model=list[EtudiantFullRead])
 def get_candidatures(trimestre: int, session: SessionDep):
@@ -198,6 +144,7 @@ def get_candidatures(trimestre: int, session: SessionDep):
 async def update_student(
         student_id: int, 
         session: SessionDep,
+        storage: StorageDep,
         trimestre: int = Form(None),
         code_permanent: Optional[str] = Form(None),
         nom: Optional[str] = Form(None),
@@ -294,24 +241,10 @@ async def update_student(
         session.commit()
 
     if resume:
-        print('asdasd', resume.filename)
         try:
-            # Create a unique filename using student ID and trimester
-            file_extension = Path(resume.filename).suffix if resume.filename else ".unknown"
-            # Sanitize filename components if necessary (basic example here)
-            safe_student_id = str(student.id)
-            safe_trimestre = str(trimestre)
-            resume_filename = f"{safe_student_id}_{safe_trimestre}_resume{file_extension}"
-            destination_path = UPLOAD_DIRECTORY / resume_filename
-
-            with destination_path.open("wb") as buffer:
-                shutil.copyfileobj(resume.file, buffer)
-
+            storage.save_file(student.get_file_name, resume)
         except Exception as e:
-            # Important: If file saving fails after student creation, you might want
-            # to roll back the student creation or implement a cleanup mechanism.
-            # For simplicity, we just raise an error here.
-            session.rollback() # Rollback student creation if file save fails
+            session.rollback()
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to save resume file: {e}. Student creation rolled back."
