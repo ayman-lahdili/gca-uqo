@@ -1,5 +1,6 @@
 from typing import Any, List, Dict
 
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 from pydantic import BaseModel
@@ -71,6 +72,19 @@ def create_campagne(
         raise HTTPException(
             status_code=404,
             detail=f"Campagne already exists for trimestre {payload.trimestre}",
+        )
+        
+    # Cannot create a campagne in a trimestre more that 3 trimestres in the future
+    def is_more_than_3_trimestres_ahead(target_trimestre: int) -> bool:
+        now = datetime.now()
+        current_trimestre = now.year * 10 + (1 if now.month <= 6 else 2 if now.month <= 9 else 3)
+        to_index = lambda t: (t // 10) * 3 + (t % 10)
+        return to_index(target_trimestre) - to_index(current_trimestre) > 3
+
+    if is_more_than_3_trimestres_ahead(payload.trimestre):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Impossible de créer une campagne pour le trimestre {payload.trimestre} car il est plus de 3 trimestres dans le futur.",
         )
 
     # Create the Campagne
