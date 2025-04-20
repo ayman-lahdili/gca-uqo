@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Annotated
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from fastapi.responses import FileResponse

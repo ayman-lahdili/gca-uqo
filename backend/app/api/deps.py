@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Annotated, Type
+from typing import Annotated
 
 from fastapi import Depends, Request, Path, HTTPException
 from sqlmodel import Session

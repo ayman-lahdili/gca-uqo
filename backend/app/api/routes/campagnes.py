@@ -1,7 +1,7 @@
 from typing import Any, List, Dict
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select, func
+from sqlmodel import select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
@@ -11,7 +11,6 @@ from app.schemas.read import (
     CampagneFullRead,
     CampagneRead,
     CampagneStatus,
-    ActiviteFullRead,
     SeanceRead,
     CoursRead,
 )

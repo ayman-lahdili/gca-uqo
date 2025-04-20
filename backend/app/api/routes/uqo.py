@@ -2,7 +2,6 @@ from typing import Any, List, Dict, Literal
 
 from fastapi import APIRouter
 
-from app.api.deps import SessionDep, HoraireDep
 from app.core.uqo import UQOCoursService, UQOProgramService
 from app.schemas.enums import Departement
 

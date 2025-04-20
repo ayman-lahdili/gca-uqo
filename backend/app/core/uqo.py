@@ -3,7 +3,6 @@ import re
 import json
 from datetime import datetime
 from bs4 import BeautifulSoup
-import os
 
 from typing import List, Literal, Dict, Any
 

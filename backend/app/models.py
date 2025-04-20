@@ -1,7 +1,7 @@
 from typing import Optional, Any, Dict
 from datetime import datetime
 
-from sqlmodel import Field, SQLModel, Column, JSON, Relationship, DATETIME
+from sqlmodel import Field, SQLModel, Column, JSON, Relationship
 from app.schemas.enums import (
     Note,
     ActiviteMode,
@@ -10,10 +10,9 @@ from app.schemas.enums import (
     CampagneStatus,
     Campus,
     ChangeType,
-    CampagneConfig,
 )
 from sqlalchemy.ext.mutable import MutableDict, MutableList
-from sqlalchemy import ForeignKeyConstraint, select, and_
+from sqlalchemy import ForeignKeyConstraint
 
 
 class Campagne(SQLModel, table=True):

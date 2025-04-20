@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel
-from typing import List, Optional, Dict
+from typing import List, Dict
 from datetime import datetime
 from app.schemas.enums import (
     ActiviteType,

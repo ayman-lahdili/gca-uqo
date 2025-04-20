@@ -1,24 +1,14 @@
-from typing import Any, List, Dict
-import zipfile
-import io
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import select
 from pydantic import BaseModel
 
 from app.api.deps import SessionDep, StorageDep
-from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from app.schemas.enums import CoursStatus, ChangeType, Campus
+from app.models import Cours, Etudiant, Candidature
+from app.schemas.enums import Campus
 from app.schemas.read import (
-    CampagneFullRead,
-    CampagneRead,
-    CampagneStatus,
     CoursFullRead,
 )
-
-from app.core.diffs import CoursDiffer
 
 router = APIRouter(prefix="/cours", tags=["campagne"])
 
