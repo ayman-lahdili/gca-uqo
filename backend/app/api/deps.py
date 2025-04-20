@@ -8,15 +8,17 @@ from app.core.db import engine
 from app.core.uqo import UQOHoraireService
 from app.core.file import StorageProvider, LocalStorageProvider
 
+
 def get_db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session
 
+
 SessionDep = Annotated[Session, Depends(get_db)]
 
+
 async def get_horaire_service(
-    trimestre: Annotated[int, Path()],
-    request: Request
+    trimestre: Annotated[int, Path()], request: Request
 ) -> UQOHoraireService:
     # If trimestre is not provided as a path parameter, try to get it from the request
     if trimestre is None and request is not None:
@@ -25,14 +27,19 @@ async def get_horaire_service(
         if "trimestre" in path_params:
             trimestre = int(path_params["trimestre"])
         else:
-            raise HTTPException(status_code=400, detail="Trimestre not found in path parameters.")
-    
+            raise HTTPException(
+                status_code=400, detail="Trimestre not found in path parameters."
+            )
+
     # Create and return the service
     return UQOHoraireService(trimestre=trimestre)
 
+
 HoraireDep = Annotated[UQOHoraireService, Depends(get_horaire_service)]
+
 
 async def get_storage_provider() -> StorageProvider:
     return LocalStorageProvider("./uploaded_resumes")
+
 
 StorageDep = Annotated[StorageProvider, Depends(get_storage_provider)]

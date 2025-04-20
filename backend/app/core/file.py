@@ -9,24 +9,25 @@ from pathlib import Path
 
 import shutil
 
+
 class StorageProvider(ABC):
     """Abstract base class for storage providers"""
-    
+
     @abstractmethod
     def save_file(self, filename: str, upload: UploadFile) -> None:
         """Save content to a file at the specified path"""
         pass
-    
+
     @abstractmethod
     def read_file(self, filename: str) -> FileResponse:
         """Read content from a file at the specified path"""
         pass
-    
+
     @abstractmethod
     def delete_file(self, filename: str) -> None:
         """Delete a file at the specified path"""
         pass
-    
+
     @abstractmethod
     def file_exists(self, filename: str) -> None:
         """Check if a file exists at the specified path"""
@@ -39,7 +40,6 @@ class StorageProvider(ABC):
 
 
 class LocalStorageProvider(StorageProvider):
-
     def __init__(self, base_directory: str) -> None:
         self.base_directory: Path = Path(base_directory)
         Path(self.base_directory).mkdir(parents=True, exist_ok=True)
@@ -59,18 +59,18 @@ class LocalStorageProvider(StorageProvider):
         return FileResponse(
             path=found_files[0],
             filename=filename,
-            media_type='application/octet-stream'
+            media_type="application/octet-stream",
         )
 
     def delete_file(self, filename: str) -> None:
         return super().delete_file(filename)
-    
+
     def file_exists(self, filename: str) -> None:
         return super().file_exists(filename)
 
     def zip_files(self, zip_file_name: str, filenames: list[str]) -> StreamingResponse:
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for file_name in filenames:
                 found_files = list(self.base_directory.glob(file_name))
 
@@ -87,5 +87,5 @@ class LocalStorageProvider(StorageProvider):
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename={zip_file_name}.zip"
-            }
+            },
         )

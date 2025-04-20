@@ -11,11 +11,17 @@ from pydantic import BaseModel
 from app.api.deps import SessionDep, StorageDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from app.schemas.enums import CoursStatus, ChangeType, Campus
-from app.schemas.read import CampagneFullRead, CampagneRead, CampagneStatus, CoursFullRead
+from app.schemas.read import (
+    CampagneFullRead,
+    CampagneRead,
+    CampagneStatus,
+    CoursFullRead,
+)
 
 from app.core.diffs import CoursDiffer
 
 router = APIRouter(prefix="/cours", tags=["campagne"])
+
 
 class CandidaturePayload(BaseModel):
     code_permanent: str
@@ -26,15 +32,23 @@ class CandidaturePayload(BaseModel):
     programme: str = ""
     email: str = ""
 
-@router.post('/{trimestre}/{sigle}/candidature', response_model=CoursFullRead)
-def add_candidature_to_cours(trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep):
-    cours = session.exec(select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))).first()
+
+@router.post("/{trimestre}/{sigle}/candidature", response_model=CoursFullRead)
+def add_candidature_to_cours(
+    trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep
+):
+    cours = session.exec(
+        select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))
+    ).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")
 
     student = session.exec(
-        select(Etudiant).where(Etudiant.code_permanent == payload.code_permanent and Etudiant.trimestre == trimestre)
+        select(Etudiant).where(
+            Etudiant.code_permanent == payload.code_permanent
+            and Etudiant.trimestre == trimestre
+        )
     ).first()
 
     if not student:
@@ -55,11 +69,19 @@ def add_candidature_to_cours(trimestre: int, sigle: str, payload: CandidaturePay
 
     assert student.id is not None, "Student ID should not be None after commit."
 
-    candidature =  session.exec(select(Candidature).where((Candidature.sigle == sigle) & (Candidature.trimestre == trimestre) & (Candidature.id_etudiant == student.id))).first()
+    candidature = session.exec(
+        select(Candidature).where(
+            (Candidature.sigle == sigle)
+            & (Candidature.trimestre == trimestre)
+            & (Candidature.id_etudiant == student.id)
+        )
+    ).first()
 
     if candidature:
-        raise HTTPException(status_code=404, detail="Une candidature existe déjà pour ce candidat")
-    
+        raise HTTPException(
+            status_code=404, detail="Une candidature existe déjà pour ce candidat"
+        )
+
     candidature = Candidature(
         id_etudiant=student.id,
         sigle=sigle,
@@ -68,18 +90,22 @@ def add_candidature_to_cours(trimestre: int, sigle: str, payload: CandidaturePay
 
     session.add(candidature)
     session.commit()
-    session.refresh(cours, attribute_names=['candidature'])
+    session.refresh(cours, attribute_names=["candidature"])
 
     return cours
 
 
 @router.post("/{trimestre}/{sigle}/resumes", response_class=StreamingResponse)
-async def download_multiple_resumes(trimestre: int, sigle: str, session: SessionDep, storage: StorageDep):
+async def download_multiple_resumes(
+    trimestre: int, sigle: str, session: SessionDep, storage: StorageDep
+):
     """
     Creates a zip file containing all resumes for the given student IDs and trimester.
     """
     print("Downloading resumes...")
-    cours = session.exec(select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))).first()
+    cours = session.exec(
+        select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))
+    ).first()
 
     if not cours:
         raise HTTPException(status_code=404, detail="Cours not found")
@@ -89,8 +115,7 @@ async def download_multiple_resumes(trimestre: int, sigle: str, session: Session
     # Validate that all students exist
     if not filenames:
         raise HTTPException(
-            status_code=400,
-            detail="Aucun étudiant trouvé pour le cours donné."
+            status_code=400, detail="Aucun étudiant trouvé pour le cours donné."
         )
-    
-    return storage.zip_files('resumes_{trimestre}', filenames)
+
+    return storage.zip_files("resumes_{trimestre}", filenames)

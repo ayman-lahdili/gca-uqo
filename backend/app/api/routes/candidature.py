@@ -1,10 +1,10 @@
 import json
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form # Add File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from fastapi.responses import FileResponse
 from sqlmodel import select
-from pydantic import BaseModel, TypeAdapter, ValidationError # Import for parsing JSON string
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.api.deps import SessionDep, StorageDep
 from app.schemas.read import EtudiantFullRead
@@ -13,44 +13,50 @@ from app.schemas.enums import Note
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 
+
 class CandidatureCoursRequestItem(BaseModel):
     sigle: str
     titre: str = ""
     note: Note = Note.non_specifie
 
+
 @router.post("/", response_model=EtudiantFullRead)
 async def create_candidature(
-        session: SessionDep,
-        storage: StorageDep,
-        code_permanent: str = Form(...),
-        nom: str = Form(...),
-        prenom: str = Form(...),
-        cycle: int = Form(...),
-        trimestre: int = Form(...),
-        campus: str = Form(""),
-        programme: str = Form(""),
-        email: str = Form(""),
-        courses_json: str = Form("[]", description="JSON string representation of the courses list"),
-        resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)")
-    ): 
-    # --- Parse Courses JSON ---
+    session: SessionDep,
+    storage: StorageDep,
+    code_permanent: str = Form(...),
+    nom: str = Form(...),
+    prenom: str = Form(...),
+    cycle: int = Form(...),
+    trimestre: int = Form(...),
+    campus: str = Form(""),
+    programme: str = Form(""),
+    email: str = Form(""),
+    courses_json: str = Form(
+        "[]", description="JSON string representation of the courses list"
+    ),
+    resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)"),
+):
     try:
-        # Use pydantic's parse_raw_as for validation against the model
-        courses_data = TypeAdapter(List[CandidatureCoursRequestItem]).validate_json(courses_json)
+        courses_data = TypeAdapter(List[CandidatureCoursRequestItem]).validate_json(
+            courses_json
+        )
     except ValidationError as e:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid JSON format for courses: {e}",
         )
     except json.JSONDecodeError:
-         raise HTTPException(
+        raise HTTPException(
             status_code=400,
             detail="Courses field is not valid JSON.",
         )
-    
-    # Validate if the student already exists
-    existing_student  = session.exec(
-        select(Etudiant).where((Etudiant.code_permanent == code_permanent) & (Etudiant.trimestre == trimestre))
+
+    existing_student = session.exec(
+        select(Etudiant).where(
+            (Etudiant.code_permanent == code_permanent)
+            & (Etudiant.trimestre == trimestre)
+        )
     ).first()
 
     if existing_student:
@@ -72,10 +78,24 @@ async def create_candidature(
     session.add(new_student)
     session.commit()
     session.refresh(new_student)
-    
+
     assert new_student.id is not None, "Student ID should not be None after commit."
 
-    # --- Save the Uploaded Resume File ---
+    for course in courses_data:
+        try:
+            candidature = Candidature(
+                id_etudiant=new_student.id,
+                sigle=course.sigle,
+                titre=course.titre,
+                trimestre=trimestre,
+                note=course.note,
+            )
+            session.add(candidature)
+        except KeyError as e:
+            session.rollback()
+
+    session.commit()
+
     if resume:
         try:
             storage.save_file(new_student.get_file_name, resume)
@@ -83,32 +103,14 @@ async def create_candidature(
             session.rollback()
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to save resume file: {e}. Student creation rolled back."
+                detail=f"Failed to save resume file: {e}. Student creation rolled back.",
             )
         finally:
-            await resume.close() # Always close the file stream
-
-    # Process courses and create candidatures
-    if courses_data:
-        for course in courses_data:
-            try:
-                candidature = Candidature(
-                    id_etudiant=new_student.id,
-                    sigle=course.sigle,
-                    titre=course.titre,
-                    trimestre=trimestre,
-                    note=course.note,
-                )
-                session.add(candidature)
-            except KeyError as e:
-                # Rollback if adding a candidature fails
-                session.rollback()
-                # TODO Attempt to remove the already saved file if something goes wrong here
-            
-        session.commit()
+            await resume.close()
 
     session.refresh(new_student)
     return new_student
+
 
 @router.get("/{trimestre}/{student_id}/resume", response_class=FileResponse)
 async def download_candidature_resume(
@@ -117,13 +119,12 @@ async def download_candidature_resume(
     session: SessionDep,
     storage: StorageDep,
 ):
-    """
-    Downloads the resume file associated with a specific student ID and trimester.
-    """
     student = session.exec(
-        select(Etudiant).where(Etudiant.id == student_id, Etudiant.trimestre == trimestre)
+        select(Etudiant).where(
+            Etudiant.id == student_id, Etudiant.trimestre == trimestre
+        )
     ).first()
-    
+
     assert student, f"No student found with ID {student_id} for trimester {trimestre}."
 
     try:
@@ -131,34 +132,35 @@ async def download_candidature_resume(
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,
-            detail=f"Resume file not found for student {student_id}, trimester {trimestre}."
+            detail=f"Resume file not found for student {student_id}, trimester {trimestre}.",
         )
+
 
 @router.get("/", response_model=list[EtudiantFullRead])
 def get_candidatures(trimestre: int, session: SessionDep):
-    students = session.exec(select(Etudiant).where(Etudiant.trimestre == trimestre)).all()
+    return session.exec(select(Etudiant).where(Etudiant.trimestre == trimestre)).all()
 
-    return students
 
 @router.put("/{student_id}", response_model=EtudiantFullRead)
 async def update_student(
-        student_id: int, 
-        session: SessionDep,
-        storage: StorageDep,
-        trimestre: int = Form(None),
-        code_permanent: Optional[str] = Form(None),
-        nom: Optional[str] = Form(None),
-        prenom: Optional[str] = Form(None),
-        cycle: Optional[int] = Form(None),
-        campus: Optional[str] = Form(""),
-        programme: Optional[str] = Form(""),
-        email: Optional[str] = Form(""),
-        # --- Courses as JSON String in Form Field ---
-        courses_json: Optional[str] = Form("[]", description="JSON string representation of the courses list"),
-        # --- Resume File ---
-        resume: Optional[UploadFile] = File(None, description="Student's resume file (e.g., PDF)")
-    ):
-    # Fetch the student by ID
+    student_id: int,
+    session: SessionDep,
+    storage: StorageDep,
+    trimestre: int = Form(None),
+    code_permanent: Optional[str] = Form(None),
+    nom: Optional[str] = Form(None),
+    prenom: Optional[str] = Form(None),
+    cycle: Optional[int] = Form(None),
+    campus: Optional[str] = Form(""),
+    programme: Optional[str] = Form(""),
+    email: Optional[str] = Form(""),
+    courses_json: Optional[str] = Form(
+        None, description="JSON string representation of the courses list"
+    ),
+    resume: Optional[UploadFile] = File(
+        None, description="Student's resume file (e.g., PDF)"
+    ),
+):
     student = session.get(Etudiant, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
@@ -188,8 +190,9 @@ async def update_student(
 
     if courses_json is not None:
         try:
-            # Use pydantic's parse_raw_as for validation against the model
-            courses_data = TypeAdapter(List[CandidatureCoursRequestItem]).validate_json(courses_json)
+            courses_data = TypeAdapter(List[CandidatureCoursRequestItem]).validate_json(
+                courses_json
+            )
         except ValidationError as e:
             raise HTTPException(
                 status_code=400,
@@ -201,24 +204,22 @@ async def update_student(
                 detail="Courses field is not valid JSON.",
             )
 
-        # Fetch existing candidatures for the student
         existing_candidatures = session.exec(
             select(Candidature).where(Candidature.id_etudiant == student.id)
         ).all()
 
-        # Process courses and update candidatures
         existing_sigles = {c.sigle for c in existing_candidatures}
         new_sigles = {course.sigle for course in courses_data}
         sigles_to_add = new_sigles - existing_sigles
         sigles_to_remove = existing_sigles - new_sigles
 
-        # Add or update candidatures
         for course in existing_candidatures:
             if course.sigle in sigles_to_remove:
                 session.delete(course)
             else:
-                # Update note
-                course.note = [c for c in courses_data if c.sigle == course.sigle][0].note
+                course.note = [c for c in courses_data if c.sigle == course.sigle][
+                    0
+                ].note
 
         processed_cours = set()
         for cours in courses_data:
@@ -226,7 +227,6 @@ async def update_student(
                 continue
             if cours.sigle in sigles_to_add:
                 try:
-                    # Add new candidature
                     candidature = Candidature(
                         id_etudiant=student.id,
                         sigle=cours.sigle,
@@ -236,7 +236,7 @@ async def update_student(
                     )
                 except ValueError:
                     raise HTTPException(status_code=400, detail="Invalid Note value")
-                
+
                 session.add(candidature)
         session.commit()
 
@@ -247,7 +247,7 @@ async def update_student(
             session.rollback()
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to save resume file: {e}. Student creation rolled back."
+                detail=f"Failed to save resume file: {e}. Student creation rolled back.",
             )
         finally:
             await resume.close()
@@ -256,16 +256,14 @@ async def update_student(
 
     return student
 
+
 @router.delete("/{student_id}")
 def delete_student(student_id: int, session: SessionDep):
-    # Fetch the student by ID
     student = session.get(Etudiant, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
-    # Delete the student
     session.delete(student)
     session.commit()
 
     return {"message": "Student and associated candidatures deleted successfully."}
-

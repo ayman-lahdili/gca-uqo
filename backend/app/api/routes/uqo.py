@@ -8,6 +8,7 @@ from app.schemas.enums import Departement
 
 router = APIRouter(prefix="/uqo", tags=["uqo"])
 
+
 @router.get("/cours", response_model=List[Dict[str, Any]])
 def fetch_courses(departement: Departement, cycle: str = ""):
     """
@@ -16,6 +17,7 @@ def fetch_courses(departement: Departement, cycle: str = ""):
     uqo_service = UQOCoursService()
     courses = uqo_service.get_courses(departement=departement, cycle=cycle)
     return courses
+
 
 @router.get("/programmes", response_model=List[Dict[str, Any]])
 def fetch_programmes(departement: Departement, cycle: Literal["1", "2", "3"]):
@@ -26,9 +28,9 @@ def fetch_programmes(departement: Departement, cycle: Literal["1", "2", "3"]):
     courses = uqo_service.get_programmes(departement=departement, cycle=cycle)
     unique = dict((obj["CdPrgAdm"], obj) for obj in courses).values()
 
-    front = [{
-        "sigle": c["CdPrgAdm"],
-        "label": c["CdPrgAdm"] + " - " + c["LblPrg"]
-    } for c in unique]
+    front = [
+        {"sigle": c["CdPrgAdm"], "label": c["CdPrgAdm"] + " - " + c["LblPrg"]}
+        for c in unique
+    ]
 
     return front

@@ -8,6 +8,7 @@ connect_args = {"check_same_thread": False}
 
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI, connect_args=connect_args)
 
+
 def init_db(session: Session):
     if os.path.exists(settings.SQLLITE_FILE_NAME):
         os.remove(settings.SQLLITE_FILE_NAME)
