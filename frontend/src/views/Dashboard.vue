@@ -14,10 +14,10 @@ export default {
 
             dt: null,
             campagne: {},
-            seance: {},
             expandedRowGroups: null,
             expandedRows: {},
             selectedSeance: {},
+            selectedCours: {},
             selectedActivite: null,
             value: '',
 
@@ -89,7 +89,6 @@ export default {
     },
     watch: {
         selectedTrimestre(newValue, oldValue) {
-            console.log(`Candidatures component detected trimestre change: ${newValue}`);
             if (newValue !== oldValue) {
                 this.fetchCampagneDetails();
             }
@@ -99,7 +98,6 @@ export default {
         async fetchCampagneDetails() {
             await CampagneService.getCampagne(this.selectedTrimestre).then((data) => {
                 this.campagne = data;
-                console.log(this.campagne);
 
                 this.distribution = this.calculateDistribution();
                 this.totalActivities = this.calculateTotalActivities();
@@ -222,7 +220,6 @@ export default {
 
                 this.candidatDialog = false;
             } catch (error) {
-                console.log(error);
                 this.toast.add({
                     severity: 'error',
                     summary: 'Erreur',
@@ -242,7 +239,8 @@ export default {
                     return {
                         id: act.id,
                         candidature: act.responsable_ids == null ? [] : act.responsable_ids,
-                        nombre_seance: act.nombre_seance
+                        nombre_seance: act.nombre_seance,
+                        status: act.status
                     };
                 })
             };
@@ -292,7 +290,7 @@ export default {
             // Create and click a download link
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `resumes_${this.trimestre}.zip`);
+            link.setAttribute('download', `${this.selectedTrimestre}_${sigle}_CV.zip`);
 
             document.body.appendChild(link);
             link.click();
@@ -303,7 +301,7 @@ export default {
                 document.body.removeChild(link);
             }, 100);
 
-            this.$toast.success(`Downloaded resumes for ${selectedIds.length} students.`);
+            this.toast.add({ severity: 'success', summary: 'CVs téléchargés', detail: 'Les CVs ont été téléchargés avec succès.', life: 3000 });
         },
         async syncSchedules() {
             this.seanceTableLoading = true;
@@ -350,12 +348,8 @@ export default {
                 });
             });
 
-            console.log(etudiant_contracts);
-
             let tot = Object.values(etudiant_contracts).reduce((acc, obj) => acc + obj.total, 0);
             this.totalSeance = tot;
-
-            console.log('etudiant_nombre_seance_par_semaine', etudiant_contracts);
 
             return tot;
         },
@@ -408,28 +402,22 @@ export default {
 
             let totalActivities = 0;
 
-            console.log(this.campagne);
-
             this.campagne.cours.forEach((course) => {
                 course.seance.forEach((seance) => {
                     seance.activite.forEach((activite) => {
                         if (activite.type === 'Travaux dirigés' || activite.type === 'Travaux pratiques') {
                             totalActivities += 1;
-                            // console.log('totalActivities', totalActivities);
                             activite.responsable.forEach((resp) => {
                                 const studentId = resp?.etudiant?.id;
+                                distribution[resp.etudiant.cycle - 1].value += 1;
                                 if (studentId && !processedStudentIds.has(studentId)) {
                                     processedStudentIds.add(studentId);
-                                    // console.log('studentId', studentId);
-                                    distribution[resp.etudiant.cycle - 1].value += 1;
                                 }
                             });
                         }
                     });
                 });
             });
-
-            console.log(distribution);
 
             if (totalActivities !== 0) {
                 distribution.forEach((item) => {
@@ -467,16 +455,6 @@ export default {
                     return 'Saint-Jérôme';
                 case 'non-specifie':
                     return 'Gatineau';
-                default:
-                    break;
-            }
-        },
-        getCoursStatus(code) {
-            switch (code) {
-                case 'confirmee':
-                    return 'Confirmé';
-                case 'non_confirmee':
-                    return 'Non-disponible';
                 default:
                     break;
             }
@@ -586,7 +564,7 @@ export default {
                                         <ol class="p-metergroup-label-list p-metergroup-label-list-horizontal" data-pc-section="labellist">
                                             <li v-for="v in value" class="p-metergroup-label" data-pc-section="label">
                                                 <span class="p-metergroup-label-marker" data-pc-section="labelmarker" :style="{ 'background-color': v.color }"></span
-                                                ><span class="p-metergroup-label-text" data-pc-section="labeltext">{{ v.label }} ({{ (v.value * totalCandidatures) / 100 }})</span>
+                                                ><span class="p-metergroup-label-text" data-pc-section="labeltext">{{ v.label }} ({{ Math.round(v.value * totalActivities) / 100 }})</span>
                                             </li>
                                         </ol>
                                         <span class="font-medium">{{ totalActivities }} séances de TD et TP</span>
@@ -634,9 +612,7 @@ export default {
                             <Column field="sigle" header="Sigle" class="font-semibold"></Column>
                             <Column field="titre" header="Titre" class="font-semibold"> </Column>
                             <Column field="status" header="Status" class="font-semibold">
-                                <template #body="slotProps">
-                                    {{ getCoursStatus(slotProps.data.status) }}
-                                </template>
+                                <template #body="slotProps"> <Tag :value="slotProps.data.status === 'confirmee' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'confirmee' ? 'success' : 'warn'" /> </template>
                             </Column>
                             <Column field="contrat" header="Contrat" class="font-semibold" sortable>
                                 <template #body="slotProps">
@@ -808,6 +784,34 @@ export default {
                                     @update:modelValue="calculateSeanceContract(selectedSeance)"
                                     :disabled="slotProps.data.change !== null && slotProps.data.change.change_type === 'added'"
                                 />
+                            </template>
+                        </Column>
+                        <Column :exportable="false" :style="{ width: '5rem' }" field="status" header="Status">
+                            <template #body="slotProps">
+                                <Select
+                                    v-model="slotProps.data.status"
+                                    :options="[
+                                        { label: 'Non confirmé', value: 'non_confirme' },
+                                        { label: 'Confirmé', value: 'confirme' }
+                                    ]"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    class="w-full"
+                                >
+                                    <template #value="slotProps">
+                                        <div v-if="slotProps.value" class="flex items-center">
+                                            <Tag :value="slotProps.value === 'confirme' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.value === 'confirme' ? 'success' : 'warn'" />
+                                        </div>
+                                        <span v-else>
+                                            {{ slotProps.placeholder }}
+                                        </span>
+                                    </template>
+                                    <template #option="slotProps">
+                                        <div class="flex items-center">
+                                            <Tag :value="slotProps.option.value === 'confirme' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.option.value === 'confirme' ? 'success' : 'warn'" />
+                                        </div>
+                                    </template>
+                                </Select>
                             </template>
                         </Column>
                     </DataTable>

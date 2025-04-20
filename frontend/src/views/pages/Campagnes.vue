@@ -49,27 +49,6 @@ export default {
             sharedState: sharedSelectState
         };
     },
-    computed: {
-        // Create a computed property to make the shared state reactive within this component
-        selectedTrimestre() {
-            return this.sharedState.selectedValue;
-        },
-        // Computed property to filter campaigns based on the shared selected trimestre
-        filteredCampagnes() {
-            if (this.selectedTrimestre === null) {
-                return []; // Or return all: this.campagnes
-            }
-            return this.campagnes.filter((c) => c.trimestre === this.selectedTrimestre);
-        }
-    },
-    watch: {
-        // Optional: Watch for changes if you need to perform actions other than filtering
-        selectedTrimestre(newValue, oldValue) {
-            console.log(`Campagnes component detected trimestre change: ${newValue}`);
-            // Example: Trigger a refresh or other logic if needed
-            // this.someMethodBasedOnTrimestre(newValue);
-        }
-    },
     mounted() {
         this.fetchCampagnes();
     },
@@ -88,7 +67,6 @@ export default {
                 });
                 this.sharedState.validateSelection();
             } catch (error) {
-                console.log(error);
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les campagnes', life: 3000 });
             } finally {
                 this.loading = false; // Set loading to false
@@ -120,13 +98,11 @@ export default {
                             return { sigle: c.sigle, titre: c.titre };
                         })
                     };
-                    console.log('asdadsad', data);
                     await CampagneService.updateCampagne(this.campagne.trimestre, data);
                 }
                 this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Campagne sauvegardée', life: 3000 });
                 await this.fetchCampagnes(); // Reload the table
             } catch (error) {
-                console.log(error);
                 this.toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de sauvegarder la campagne', life: 3000 });
             } finally {
                 this.loading = false; // Set loading to false
@@ -240,6 +216,10 @@ export default {
         },
         formatCurrency(value) {
             return value.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+        },
+        openCampagneFormulaire(trimestre) {
+            const routeUrl = this.$router.resolve({ name: 'StudentForm', params: { trimestre: trimestre } });
+            window.open(routeUrl.href, '_blank');
         }
     }
 };
@@ -261,7 +241,7 @@ export default {
                         <DataTable ref="dt" v-model:selection="selectedCampagne" selectionMode="single" :value="campagnes" dataKey="id" :rows="50" :filters="filters" removableSort :loading="loading">
                             <template #header>
                                 <div class="flex flex-wrap gap-2 items-center justify-between">
-                                    <h3 class="m-0">Gestion des Campagnes</h3>
+                                    <h3 class="m-0">Campagnes</h3>
                                     <div>
                                         <template v-if="selectedCampagne">
                                             <Button v-if="selectedCampagne.status === 'en_cours'" label="Clôturer" icon="pi pi-stop-circle" class="mr-2 mt-2" outlined severity="danger" @click="openConcludeCampagneDialog(selectedCampagne)" />
@@ -292,9 +272,14 @@ export default {
                                     {{ formatCurrency(slotProps.data.stats.cout_total) }}
                                 </template>
                             </Column>
-                            <Column field="status" header="Statut" sortable style="min-width: 12rem">
+                            <Column field="status" header="Statut" sortable style="min-width: 3rem">
                                 <template #body="slotProps">
                                     <Tag :value="statuses.find((s) => s.label === slotProps.data.status)?.value" :severity="slotProps.data.status === 'cloturee' ? 'warn' : 'success'" />
+                                </template>
+                            </Column>
+                            <Column :exportable="false" style="max-width: 3rem" header="Formulaire">
+                                <template #body="slotProps">
+                                    <Button icon="pi pi-arrow-right" outlined rounded severity="secondary" @click="openCampagneFormulaire(slotProps.data.trimestre)" :disabled="slotProps.data.status === 'cloturee'" />
                                 </template>
                             </Column>
                         </DataTable>

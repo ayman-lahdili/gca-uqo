@@ -2,11 +2,14 @@
     <div>
         <div class="max-w-4xl mx-auto p-4 card">
             <template v-if="type === 'ETUD'">
-                <h3>Formulaire de candidature - {{ formatTrimestre(trimestre) }}</h3>
+                <div class="flex items-center justify-between px-6">
+                    <span class="text-2xl font-bold">Formulaire de candidature</span>
+                    <span class="text-2xl">{{ formatTrimestre(trimestre) }}</span>
+                </div>
             </template>
             <template v-else="type === 'GEST'">
                 <div class="flex items-center justify-between gap-2 mb-4">
-                    <h3>{{ getCandidatDialogTitle(candidatAction) }}</h3>
+                    <span class="text-2xl font-bold">{{ getCandidatDialogTitle(candidatAction) }}</span>
                     <Button label="Annuler" icon="pi pi-times" variant="text" class="mb-4" @click="closeCandidatDialog" />
                 </div>
             </template>
@@ -18,14 +21,6 @@
                     <div class="space-y-4">
                         <!-- Name inputs in a row -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="prenom" class="block text-sm font-medium mb-1">Prénom <span class="text-red-500">*</span></label>
-                                <InputText id="prenom" v-model="candidat.prenom" class="w-full" :invalid="candidatFormState.prenom" @change="candidatFormState.prenom = false" />
-                            </div>
-                            <div>
-                                <label for="nom" class="block text-sm font-medium mb-1">Nom <span class="text-red-500">*</span></label>
-                                <InputText id="nom" v-model="candidat.nom" class="w-full" :invalid="candidatFormState.nom" @change="candidatFormState.nom = false" />
-                            </div>
                             <!-- Code permanent - highlighted as important -->
                             <div>
                                 <label for="code_permanent" class="block text-sm font-medium mb-1"> Code permanent <span class="text-red-500">*</span> </label>
@@ -37,22 +32,56 @@
                                     maxlength="12"
                                     :invalid="candidatFormState.code_permanent"
                                     @change="candidatFormState.code_permanent = false"
+                                    :disabled="candidatAction === 'EDIT'"
                                 />
                             </div>
                             <!-- Email -->
                             <div>
                                 <label for="email" class="block text-sm font-medium mb-1">Adresse courriel de l'UQO</label>
-                                <InputText id="email" v-model="candidat.email" class="w-full" placeholder="doej01@uqo.ca" :invalid="candidatFormState.email" @change="candidatFormState.email = false" :disabled="type === 'ETUD'" />
+                                <InputText
+                                    id="email"
+                                    v-model="candidat.email"
+                                    class="w-full"
+                                    placeholder="doej01@uqo.ca"
+                                    :invalid="candidatFormState.email"
+                                    @change="candidatFormState.email = false"
+                                    :disabled="type === 'ETUD' || candidatAction === 'EDIT'"
+                                />
+                            </div>
+                            <div>
+                                <label for="prenom" class="block text-sm font-medium mb-1">Prénom <span class="text-red-500">*</span></label>
+                                <InputText id="prenom" v-model="candidat.prenom" class="w-full" :invalid="candidatFormState.prenom" @change="candidatFormState.prenom = false" />
+                            </div>
+                            <div>
+                                <label for="nom" class="block text-sm font-medium mb-1">Nom <span class="text-red-500">*</span></label>
+                                <InputText id="nom" v-model="candidat.nom" class="w-full" :invalid="candidatFormState.nom" @change="candidatFormState.nom = false" />
                             </div>
                         </div>
 
                         <!-- CV Upload/Download -->
                         <div class="pt-2">
                             <label class="block text-sm font-medium mb-2">Curriculum Vitae</label>
-                            <div class="flex flex-col sm:flex-row gap-2 justify-between">
-                                <Button label="Télécharger CV actuel" icon="pi pi-download" class="flex-1" outlined @click="downloadResume" />
-                                <FileUpload ref="fileupload" mode="basic" name="cv" accept="application/pdf" :maxFileSize="5000000" @upload="onUpload" chooseLabel="Téléverser CV" class="flex-1" />
-                            </div>
+                            <Button v-if="type !== 'ETUD'" label="Télécharger CV actuel" icon="pi pi-download" class="w-full mb-2" outlined @click="downloadResume" />
+                            <FileUpload
+                                ref="fileupload"
+                                class="w-full"
+                                name="cv"
+                                accept="application/pdf"
+                                :maxFileSize="5000000"
+                                chooseLabel="Téléverser CV"
+                                :showUploadButton="false"
+                                :showCancelButton="false"
+                                :previewWidth="0"
+                                :disabled="$refs.fileupload?.files?.length > 0"
+                            >
+                                <template #content="{ files, uploadedFiles, removeUploadedFileCallback, removeFileCallback, messages }">
+                                    <div v-for="(file, index) of files" :key="file.name + file.type + file.size" class="p-3 rounded-border flex flex-row border justify-between border-surface items-center gap-4">
+                                        <span class="font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden">{{ file.name }}</span>
+                                        <div>{{ formatSize(file.size) }}</div>
+                                        <Button icon="pi pi-times" @click="onRemoveTemplatingFile(file, removeFileCallback, index)" outlined rounded severity="danger" />
+                                    </div>
+                                </template>
+                            </FileUpload>
                         </div>
                     </div>
                 </section>
@@ -105,7 +134,11 @@
                             </div>
                         </template>
                         <Column field="sigle" header="Sigle"></Column>
-                        <Column field="titre" header="Titre du cours"></Column>
+                        <Column field="titre" header="Titre du cours">
+                            <template #body="slotProps">
+                                <span class="">{{ getCourseTitle(slotProps.data.sigle) }}</span>
+                            </template>
+                        </Column>
                         <Column field="note" header="Note" style="max-width: 3rem"></Column>
                         <Column :exportable="false" style="min-width: 10rem">
                             <template #body="slotProps">
@@ -118,7 +151,14 @@
 
                 <!-- Save button - only shown in edit mode -->
                 <div class="flex justify-end">
-                    <Button v-if="candidatAction !== 'VIEW'" label="Enregistrer" icon="pi pi-save" severity="success" class="px-4 py-2" @click="openConfirmCandidat(candidat)" />
+                    <Button
+                        v-if="candidatAction !== 'VIEW'"
+                        :label="type === 'ETUD' ? 'Envoyer votre candidature' : 'Enregistrer'"
+                        :icon="type === 'ETUD' ? 'pi pi-send' : 'pi pi-save'"
+                        severity="success"
+                        class="px-4 py-2"
+                        @click="openConfirmCandidat(candidat)"
+                    />
                 </div>
             </div>
         </div>
@@ -158,7 +198,7 @@
             </div>
             <template #footer>
                 <Button label="Non" icon="pi pi-times" text @click="candidatureDialog = false" />
-                <Button label="Oui" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="(candidatureAction === 'NEW' && candidature?.sigle?.length < 7) || campagneCoursesResults.length === 0" />
+                <Button label="Oui" icon="pi pi-check" @click="confirmEditCandidature(candidature)" :disabled="candidature.sigle === undefined || candidature?.sigle?.length < 7" />
             </template>
         </Dialog>
         <Dialog v-model:visible="deleteCandidatureDialog" :style="{ width: '450px' }" header="Confirmation" :modal="true">
@@ -179,11 +219,25 @@
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle !text-3xl" />
                 <span v-if="candidatAction === 'EDIT'"
-                    >Êtes-vous sûr de vouloir appliquer les modifications sur le candidat <b>{{ candidat.prenom + ' ' + candidat.nom + ' (' + candidat.email + ')' }}</b> ?</span
+                    >Êtes-vous sûr de vouloir appliquer les modifications sur le candidat
+                    <b
+                        >{{ candidat.prenom + ' ' + candidat.nom }} <code>{{ '(' + candidat.code_permanent + ')' }}</code></b
+                    >
+                    ?</span
                 >
-                <span v-if="candidatAction === 'NEW'"
-                    >Êtes-vous sûr de vouloir ajouter le candidat <b>{{ candidat.prenom + ' ' + candidat.nom + ' (' + candidat.email + ')' }}</b> ?</span
-                >
+                <span v-if="candidatAction === 'NEW'">
+                    <template v-if="type === 'ETUD'">
+                        Êtes-vous sûr de vouloir soumettre votre candidature pour le trimestre
+                        <b>{{ formatTrimestre(trimestre) }}</b> ?
+                    </template>
+                    <template v-else>
+                        Êtes-vous sûr de vouloir ajouter le candidat
+                        <b
+                            >{{ candidat.prenom + ' ' + candidat.nom }} <code>{{ '(' + candidat.code_permanent + ')' }}</code></b
+                        >
+                        ?
+                    </template>
+                </span>
             </div>
             <template #footer>
                 <Button label="Non" icon="pi pi-times" text @click="confirmCandidatDialog = false" />
@@ -224,7 +278,7 @@ export default {
             validator: (value) => ['NEW', 'EDIT', 'VIEW'].includes(value)
         },
         trimestre: {
-            type: String,
+            type: [Number, String],
             required: true
         },
         type: {
@@ -287,8 +341,12 @@ export default {
                 this.$emit('close');
             }
         },
+        getCourseTitle(sigle) {
+            const foundCourse = this.courses.find((c) => c.sigle === sigle);
+            return foundCourse ? foundCourse.titre : 'Cours introuvable';
+        },
         onUpload() {
-            console.log('File uploaded successfully');
+            console.log('Fichier téléversé');
             this.toast.add({ severity: 'info', summary: 'Succès', detail: 'Fichier Téléversé', life: 3000 });
         },
         async getListProgramme(cycle) {
@@ -338,6 +396,11 @@ export default {
                 isValid = false;
             }
 
+            if (this.type === 'ETUD' && this.$refs.fileupload.files.length === 0) {
+                this.toast.add({ severity: 'error', summary: 'Erreur', detail: "Aucun CV n'a été téléversé", life: 3000 });
+                isValid = false;
+            }
+
             if (!isValid) {
                 this.toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Certain champs son invalide.', life: 3000 });
                 return;
@@ -375,7 +438,6 @@ export default {
             this.loading = true;
             try {
                 if (this.candidatAction === 'NEW') {
-                    console.log(this.$refs.fileupload.files?.[0]);
                     await CandidatService.createCandidature(
                         {
                             code_permanent: candidat.code_permanent,
@@ -440,6 +502,25 @@ export default {
                 default:
                     break;
             }
+        },
+        formatSize(bytes) {
+            const k = 1024;
+            const dm = 3;
+            const sizes = this.$primevue.config.locale.fileSizeTypes;
+
+            if (bytes === 0) {
+                return `0 ${sizes[0]}`;
+            }
+
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const formattedSize = parseFloat((bytes / Math.pow(k, i)).toFixed(dm));
+
+            return `${formattedSize} ${sizes[i]}`;
+        },
+        onRemoveTemplatingFile(file, removeFileCallback, index) {
+            removeFileCallback(index);
+            this.totalSize -= parseInt(this.formatSize(file.size));
+            this.totalSizePercent = this.totalSize / 10;
         },
         searchCourse(event) {
             const query = event.query.toLowerCase();

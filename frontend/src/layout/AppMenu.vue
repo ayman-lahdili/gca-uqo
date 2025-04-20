@@ -26,8 +26,12 @@ export default {
                     ]
                 }
             ],
-            visible: false
+            visible: false,
+            currentUser: null
         };
+    },
+    mounted() {
+        this.currentUser = localStorage.getItem('email');
     },
     methods: {
         disconnect() {
@@ -45,7 +49,7 @@ export default {
             <app-menu-item v-if="!item.separator" :item="item" :index="i"></app-menu-item>
         </template>
         <div class="mt-auto">
-            <Button icon="pi pi-cog" class="w-full" label="technicien@uqo.ca" severity="contrast" variant="text" @click="visible = true" />
+            <Button icon="pi pi-cog" class="w-full" :label="currentUser" severity="contrast" variant="text" @click="visible = true" />
 
             <hr class="border-t border-surface-200 dark:border-surface-700" />
 

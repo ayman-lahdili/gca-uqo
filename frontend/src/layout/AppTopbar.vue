@@ -77,7 +77,7 @@ function updateSelectedTrimestre() {
                         placeholder="Selectionner un trimestre"
                         class="w-full md:w-70"
                     />
-                    <span v-else>Loading...</span>
+                    <span v-else>Loading... {{ $router.push('/premiere-visite') }}</span>
                 </div>
             </div>
         </div>

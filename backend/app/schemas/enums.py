@@ -38,6 +38,11 @@ class ActiviteType(str, Enum):
     COURS = "Cours régulier"
 
 
+class ActiviteStatus(str, Enum):
+    confirmee = "confirme"
+    non_confirmee = "non_confirme"
+
+
 class Note(str, Enum):
     A_p = "A+"
     A = "A"

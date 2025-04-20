@@ -30,12 +30,10 @@ export const sharedSelectState = reactive({
 
     setSelectedValue(newValue) {
         const numericValue = newValue === null || newValue === undefined ? null : Number(newValue);
-        console.log('selectedTrimestre', this.selectedValue, numericValue);
         if (this.selectedValue !== numericValue) {
             this.selectedValue = numericValue;
             // Persist null/undefined as empty string or handle appropriately
             localStorage.setItem('selectedTrimestre', numericValue === null ? '' : String(numericValue));
-            console.log('Shared state selectedValue updated:', this.selectedValue);
         } else {
             localStorage.setItem('selectedTrimestre', numericValue === null ? '' : String(numericValue));
         }
@@ -48,7 +46,6 @@ export const sharedSelectState = reactive({
             this.trimestreOptions.push(numericTrimestre);
             this.trimestreOptions.sort((a, b) => b - a); // Example: sort descending
             localStorage.setItem('trimestreOptions', JSON.stringify(this.trimestreOptions));
-            console.log('Shared state trimestreOptions updated:', this.trimestreOptions);
 
             // Optional: Check if selectedValue needs initialization or validation
             if (this.selectedValue === null && this.trimestreOptions.length > 0) {

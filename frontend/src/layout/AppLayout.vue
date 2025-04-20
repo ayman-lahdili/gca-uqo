@@ -62,7 +62,6 @@ export default {
         },
         // Watch the computed property that tracks the shared state
         sharedValueFromGlobalState(newValue, oldValue) {
-            console.log(`UnrelatedPageComponent detected change via watch: ${newValue}`);
             // You can trigger actions here when the value changes, e.g., automatically fetch data
             // this.fetchData();
         }

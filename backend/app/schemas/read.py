@@ -9,6 +9,7 @@ from app.schemas.enums import (
     CampagneStatus,
     Note,
     CampagneConfig,
+    ActiviteStatus,
 )
 
 
@@ -32,6 +33,7 @@ class ActiviteRead(SQLModel):
     id: int
     type: ActiviteType | None = None
     mode: ActiviteMode | None = None
+    status: ActiviteStatus | None = None
     jour: int
     hr_debut: int
     hr_fin: int

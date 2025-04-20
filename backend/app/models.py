@@ -8,6 +8,7 @@ from app.schemas.enums import (
     ActiviteType,
     CoursStatus,
     CampagneStatus,
+    ActiviteStatus,
     Campus,
     ChangeType,
 )
@@ -22,7 +23,6 @@ class Campagne(SQLModel, table=True):
     config: Dict[str, Any] = Field(
         default={}, sa_column=Column(MutableDict.as_mutable(JSON))
     )
-    # echelle_salariale: list[float] | None = Field(default=[18.85, 24.49, 26.48], sa_column=Column(MutableDict.as_mutable(JSON)))
 
     cours: list["Cours"] = Relationship(back_populates="campagne")
 
@@ -101,6 +101,7 @@ class Activite(SQLModel, table=True):
     id: Optional[int] | None = Field(default=None, primary_key=True)
     type: ActiviteType = Field(default=None)
     mode: ActiviteMode = Field(default=None)
+    status: ActiviteStatus = Field(default=ActiviteStatus.non_confirmee)
     jour: int
     hr_debut: int
     hr_fin: int

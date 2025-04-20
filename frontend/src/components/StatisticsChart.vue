@@ -79,25 +79,28 @@ export default {
                         label: 'Candidature Cycle 1',
                         backgroundColor: documentStyle.getPropertyValue('--p-red-500'),
                         data: cycle1Data,
-                        stack: 'candidature'
+                        stack: 'candidature',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Candidature Cycle 2',
                         backgroundColor: documentStyle.getPropertyValue('--p-red-600'),
                         data: cycle2Data,
-                        stack: 'candidature'
+                        stack: 'candidature',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Candidature Cycle 3',
                         backgroundColor: documentStyle.getPropertyValue('--p-red-900'),
                         data: cycle3Data,
-                        stack: 'candidature'
+                        stack: 'candidature',
+                        barThickness: 52
                     },
                     {
                         type: 'line',
-                        label: 'Total Cost',
+                        label: 'Coût total',
                         fill: false,
                         borderColor: documentStyle.getPropertyValue('--p-primary-color'),
                         yAxisID: 'y1',
@@ -109,35 +112,40 @@ export default {
                         label: 'Assistant Cycle 1',
                         backgroundColor: documentStyle.getPropertyValue('--p-green-500'),
                         data: assistantCycle1Data,
-                        stack: 'assistant'
+                        stack: 'assistant',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Assistant Cycle 2',
                         backgroundColor: documentStyle.getPropertyValue('--p-green-600'),
                         data: assistantCycle2Data,
-                        stack: 'assistant'
+                        stack: 'assistant',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Assistant Cycle 3',
                         backgroundColor: documentStyle.getPropertyValue('--p-green-900'),
                         data: assistantCycle3Data,
-                        stack: 'assistant'
+                        stack: 'assistant',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Total TP',
                         backgroundColor: documentStyle.getPropertyValue('--p-purple-500'),
                         data: totalTpData,
-                        stack: 'activite'
+                        stack: 'activite',
+                        barThickness: 52
                     },
                     {
                         type: 'bar',
                         label: 'Total TD',
                         backgroundColor: documentStyle.getPropertyValue('--p-indigo-500'),
                         data: totalTdData,
-                        stack: 'activite'
+                        stack: 'activite',
+                        barThickness: 52
                     }
                 ]
             };
@@ -378,6 +386,32 @@ export default {
                 default:
                     break;
             }
+        },
+        exportCSV() {
+            const csvData = this.campagnes.map((campagne) => {
+                return {
+                    trimestre: campagne.trimestre,
+                    cycle1: campagne.stats.nbr_candidature_cycle1,
+                    cycle2: campagne.stats.nbr_candidature_cycle2,
+                    cycle3: campagne.stats.nbr_candidature_cycle3,
+                    coutTotal: campagne.stats.cout_total,
+                    assistantCycle1: campagne.stats.nbr_assistant_cycle1,
+                    assistantCycle2: campagne.stats.nbr_assistant_cycle2,
+                    assistantCycle3: campagne.stats.nbr_assistant_cycle3
+                };
+            });
+
+            const headers = Object.keys(csvData[0]).join(',');
+            const rows = csvData.map((row) => Object.values(row).join(',')).join('\n');
+            const csvContent = 'data:text/csv;charset=utf-8,' + headers + '\n' + rows;
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'campagnes.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     }
 };

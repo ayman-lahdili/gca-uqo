@@ -33,7 +33,7 @@
                             <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" v-model="candidat.email" />
 
                             <div class="flex items-center justify-between gap-8"></div>
-                            <Button label="Connection" class="w-full" @click="handleSignIn" :loading="loading"></Button>
+                            <Button label="Connection" class="w-full" @click="handleSignIn" :loading="loading" :disabled="this.candidat?.email?.length < 8"></Button>
                         </div>
                     </div>
                 </div>
@@ -91,9 +91,12 @@ export default {
                 this.loading = true;
 
                 try {
-                    let trimestres = await CampagneService.getListTrimestre();
-                    // Emit the event to update the parent component's `connected` property
-                    this.connected = true;
+                    await CampagneService.getCours(this.trimestre)
+                        .then((res) => (this.connected = true))
+                        .catch((error) => {
+                            console.error('Error fetching courses:', error);
+                            this.toast.add({ severity: 'error', summary: 'Erreur', detail: "Ce trimestre n'a pas encore commencé", life: 3000 });
+                        });
                 } catch (error) {
                     console.error('Error fetching trimestres:', error);
                 } finally {

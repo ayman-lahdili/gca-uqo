@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType
+from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
 from app.schemas.read import (
     CampagneFullRead,
     CampagneRead,
@@ -52,6 +52,7 @@ class ActiviteUpdateRequest(BaseModel):
     id: int
     candidature: List[int] | None = None
     nombre_seance: int | None = None
+    status: ActiviteStatus | None = None
 
 
 class SeanceUpdateRequest(BaseModel):
@@ -496,6 +497,11 @@ def modify_activity(
         if act.nombre_seance:
             activite.nombre_seance = act.nombre_seance
             session.add(activite)
+        if act.status:
+            try:
+                activite.status = ActiviteStatus(act.status)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Status invalide")
 
         session.refresh(activite, attribute_names=["responsable"])
     session.refresh(seance, attribute_names=["activite"])

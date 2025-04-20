@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import Any, List
 
 from app.models import Cours, Activite, Seance
-from app.schemas.enums import ChangeType
+from app.schemas.enums import ChangeType, ActiviteStatus
 
 
 @dataclass
@@ -75,6 +75,7 @@ class CoursDiffer:
         for key, act in old_acts.items():
             if key not in new_acts:
                 act.change["change_type"] = ChangeType.REMOVED
+                act.status = ActiviteStatus.non_confirmee
             elif act.change["change_type"] != ChangeType.ADDED:
                 act.change["change_type"] = ChangeType.UNCHANGED
 

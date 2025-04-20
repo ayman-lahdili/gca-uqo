@@ -13,7 +13,7 @@
                         <div class="flex flex-col gap-2 pt-1">
                             <div v-for="n in 3">
                                 <label class="text-sm mb-1 block">Cycle {{ n }}</label>
-                                <InputNumber v-model="campagne.config.echelle_salariale[n - 1]" mode="decimal" :min="0" :placeholder="'Cycle ' + n" />
+                                <InputNumber v-model="campagne.config.echelle_salariale[n - 1]" locale="fr-CA" :minFractionDigits="2" fluid :min="0" :placeholder="'Cycle ' + n" @input="hasUnsavedChanges = true" />
                             </div>
                         </div>
                     </div>
@@ -27,11 +27,11 @@
                             <div class="flex gap-4 mb-5">
                                 <div>
                                     <label class="text-sm mb-1 block">Heures de préparation</label>
-                                    <InputNumber v-model="values.preparation" mode="decimal" :min="0" placeholder="Préparation" />
+                                    <InputNumber v-model="values.preparation" mode="decimal" :min="0" placeholder="Préparation" @input="hasUnsavedChanges = true" />
                                 </div>
                                 <div>
                                     <label class="text-sm mb-1 block">Durée de la séance</label>
-                                    <InputNumber v-model="values.travail" mode="decimal" :min="0" placeholder="Travail" />
+                                    <InputNumber v-model="values.travail" mode="decimal" :min="0" placeholder="Travail" @input="hasUnsavedChanges = true" />
                                 </div>
                             </div>
                         </div>
@@ -42,7 +42,7 @@
             <Button v-else-if="campagneAction === 'EDIT' && campagne.status === 'cloturee'" label="Réactiver" icon="pi pi-play-circle" class="mx-2" outlined severity="success" @click="campagne.status = 'en_cours'" />
             <div class="flex justify-between mx-2">
                 <div class="flex gap-4 justify-between">
-                    <Select v-if="campagneAction === 'NEW'" id="trimestre" v-model="campagne.trimestre" :options="optionTrimestre" optionLabel="value" placeholder="Sélectionner un trimestre" :disabled="campagne.trimestre !== ''" />
+                    <Select v-if="campagneAction === 'NEW'" id="trimestre" v-model="campagne.trimestre" :options="optionTrimestre" optionLabel="value" placeholder="Sélectionner un trimestre" />
                     <div v-if="campagne.trimestre !== ''">
                         <InputText v-model="sigle" type="text" placeholder="Sigle" maxlength="8" style="border-start-end-radius: 0; border-end-end-radius: 0" @keyup.enter="addCourse(sigle)" />
                         <Button label="Ajouter" @click="addCourse(sigle)" :disabled="sigle.length < 7" style="border-start-start-radius: 0; border-end-start-radius: 0" :loading="isSearchingCourse" />
@@ -52,10 +52,10 @@
                 <Button v-if="campagne.trimestre !== '' && campagneAction === 'EDIT'" label="Enregistrer" icon="pi pi-save" iconPos="right" variant="text" class="" @click="openConfirmCampagne" />
             </div>
             <template v-if="campagne.trimestre !== ''">
-                <DataTable :value="campagne.cours" tableStyle="min-width: 50rem" class="card">
-                    <Column field="sigle" header="Sigle" style="max-width: 5rem"></Column>
-                    <Column field="titre" header="Titre" style="max-width: 12rem"></Column>
-                    <Column field="status" header="Statut">
+                <DataTable :value="campagne.cours" tableStyle="min-width: 40rem" class="card">
+                    <Column field="sigle" header="Sigle" style="max-width: 3rem"></Column>
+                    <Column field="titre" header="Titre" style="max-width: 8rem"></Column>
+                    <Column v-if="campagneAction === 'EDIT'" field="status" header="Statut" style="max-width: 3rem">
                         <template #body="slotProps">
                             <Tag :value="slotProps.data.status === 'confirmee' ? 'Confirmé' : 'Non confirmé'" :severity="slotProps.data.status === 'confirmee' ? 'success' : 'warn'" />
                         </template>
@@ -265,6 +265,20 @@ export default {
             this.$emit('close');
         },
         openConfirmCampagne() {
+            // Input validation
+            if (this.campagne.config.echelle_salariale.some((val) => val === null || val === undefined)) {
+                this.toast.add({ severity: 'warn', summary: 'Attention', detail: "Veuillez remplir tous les champs de l'échelle salariale", life: 2000 });
+                return;
+            }
+            const activiteHeure = this.campagne.config.activite_heure;
+            for (const activite in activiteHeure) {
+                const valeurs = activiteHeure[activite];
+                if (valeurs.preparation === null || valeurs.preparation === undefined || valeurs.travail === null || valeurs.travail === undefined) {
+                    this.toast.add({ severity: 'warn', summary: 'Attention', detail: `Veuillez remplir toutes les heures pour "${activite}"`, life: 2000 });
+                    return;
+                }
+            }
+
             this.confirmCampagneDialog = true;
         },
         saveCampagne(campagne) {

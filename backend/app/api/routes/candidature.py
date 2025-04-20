@@ -8,8 +8,8 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.api.deps import SessionDep, StorageDep
 from app.schemas.read import EtudiantFullRead
-from app.models import Etudiant, Candidature, Campus
-from app.schemas.enums import Note
+from app.models import Etudiant, Candidature, Campus, Campagne
+from app.schemas.enums import Note, CampagneStatus
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 
@@ -37,6 +37,16 @@ async def create_candidature(
     ),
     resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)"),
 ):
+    campagne = session.exec(
+        select(Campagne).where((Campagne.trimestre == trimestre) & (Campagne.status == CampagneStatus.en_cours))
+    ).first()
+
+    if not campagne:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Trimestre invalid {trimestre}. Aucun trimestre en cours de disponible.",
+        )
+
     try:
         courses_data = TypeAdapter(List[CandidatureCoursRequestItem]).validate_json(
             courses_json
@@ -54,7 +64,7 @@ async def create_candidature(
 
     existing_student = session.exec(
         select(Etudiant).where(
-            (Etudiant.code_permanent == code_permanent)
+            ((Etudiant.code_permanent == code_permanent) | (Etudiant.email == email))
             & (Etudiant.trimestre == trimestre)
         )
     ).first()
@@ -62,7 +72,7 @@ async def create_candidature(
     if existing_student:
         raise HTTPException(
             status_code=400,
-            detail="A candidature for this trimestre already exists for the student.",
+            detail="Une candidature existe déjà pour cet étudiant dans ce trimestre.",
         )
 
     new_student = Etudiant(
@@ -258,11 +268,12 @@ async def update_student(
 
 
 @router.delete("/{student_id}")
-def delete_student(student_id: int, session: SessionDep):
+def delete_student(student_id: int, session: SessionDep, storage: StorageDep):
     student = session.get(Etudiant, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
 
+    storage.delete_file(student.get_file_name)
     session.delete(student)
     session.commit()
 

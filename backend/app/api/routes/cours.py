@@ -36,8 +36,7 @@ def add_candidature_to_cours(
 
     student = session.exec(
         select(Etudiant).where(
-            Etudiant.code_permanent == payload.code_permanent
-            and Etudiant.trimestre == trimestre
+            (Etudiant.code_permanent == payload.code_permanent) & (Etudiant.trimestre == trimestre)
         )
     ).first()
 

@@ -27,7 +27,7 @@ class StorageProvider(ABC):
         pass
 
     @abstractmethod
-    def file_exists(self, filename: str) -> None:
+    def file_exists(self, filename: str) -> bool:
         """Check if a file exists at the specified path"""
         pass
 
@@ -61,10 +61,16 @@ class LocalStorageProvider(StorageProvider):
         )
 
     def delete_file(self, filename: str) -> None:
-        return super().delete_file(filename)
+        found_files = list(self.base_directory.glob(filename))
+        if not found_files:
+            return
 
-    def file_exists(self, filename: str) -> None:
-        return super().file_exists(filename)
+        for file_path in found_files:
+            file_path.unlink()  # Delete the file
+
+    def file_exists(self, filename: str) -> bool:
+        found_files = list(self.base_directory.glob(filename))
+        return len(found_files) > 0
 
     def zip_files(self, zip_file_name: str, filenames: list[str]) -> StreamingResponse:
         zip_buffer = io.BytesIO()

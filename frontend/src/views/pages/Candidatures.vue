@@ -38,7 +38,6 @@ export default {
 
             // MISC
             programmes: [],
-            trimestre: new Date().getFullYear() * 10 + Math.ceil((new Date().getMonth() + 1) / 4), // Current trimestre
             loading: false,
             sharedState: sharedSelectState,
             courses: [],
@@ -75,7 +74,6 @@ export default {
 
             this.loading = true;
             try {
-                console.log(this.trimestre);
                 const data = await CandidatService.getCandidatures(currentTrimestre);
                 this.candidats = data;
             } catch (error) {
@@ -248,16 +246,23 @@ export default {
         },
 
         // Datatable
-        exportCSV() {
-            this.dt.exportCSV();
-        },
         async downloadResume(student) {
             try {
                 const id = student.id;
                 const codePermanent = student.code_permanent;
-                const filename = `${this.trimestre}_${codePermanent || id}_CV.pdf`;
+                const filename = `${this.selectedTrimestre}_${codePermanent || id}_CV.pdf`;
 
-                const response = await CandidatService.downloadResume(id, this.trimestre);
+                const response = await CandidatService.downloadResume(id, this.selectedTrimestre);
+
+                if (response === null) {
+                    this.toast.add({
+                        severity: 'error',
+                        summary: 'Erreur',
+                        detail: "Aucun CV n'a été enregistré pour ce candidat",
+                        life: 3000
+                    });
+                    return;
+                }
 
                 // Create a blob URL directly from the response data
                 const blob = new Blob([response]);
