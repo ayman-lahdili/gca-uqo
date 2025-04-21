@@ -29,27 +29,27 @@ const router = createRouter({
             children: [
                 {
                     path: '/',
-                    name: 'dashboard',
+                    name: 'Tableau de bord',
                     component: () => import('@/views/Dashboard.vue')
                 },
                 {
                     path: '/campagnes',
-                    name: 'campagnes',
+                    name: 'Campagnes',
                     component: () => import('@/views/pages/Campagnes.vue')
                 },
                 {
                     path: '/candidatures',
-                    name: 'candidatures',
+                    name: 'Candidatures',
                     component: () => import('@/views/pages/Candidatures.vue')
                 },
                 {
                     path: '/logs',
-                    name: 'logs',
+                    name: 'Journaux',
                     component: () => import('@/views/pages/Logs.vue')
                 },
                 {
                     path: '/users',
-                    name: 'users',
+                    name: 'Utilisateurs',
                     component: () => import('@/views/pages/Users.vue')
                 }
             ]
@@ -66,6 +66,11 @@ router.beforeEach((to, from, next) => {
     } else {
         next();
     }
+});
+
+router.afterEach((to) => {
+    // Set the document title to the route name
+    document.title = to.name || 'GCA';
 });
 
 export default router;

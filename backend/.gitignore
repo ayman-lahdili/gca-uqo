@@ -13,3 +13,6 @@ wheels/
 # Database
 *.db
 uploaded_resumes/
+
+# Misc
+.ruff_cache

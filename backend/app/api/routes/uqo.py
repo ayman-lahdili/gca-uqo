@@ -1,14 +1,26 @@
 from typing import Any, List, Dict, Literal
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from app.core.uqo import UQOCoursService, UQOProgramService
 from app.schemas.enums import Departement
 
 router = APIRouter(prefix="/uqo", tags=["uqo"])
 
+class UQOCours(BaseModel):
+    sigle: str
+    titre: str
+    cycle: str
+    credit: str
+    préables: List[str] = []
 
-@router.get("/cours", response_model=List[Dict[str, Any]])
+class UQOProgramme(BaseModel):
+    sigle: str
+    label: str
+
+
+@router.get("/cours", response_model=List[UQOCours])
 def fetch_courses(departement: Departement, cycle: str = ""):
     """
     Fetch the list of courses for a given department and cycle.
@@ -18,7 +30,7 @@ def fetch_courses(departement: Departement, cycle: str = ""):
     return courses
 
 
-@router.get("/programmes", response_model=List[Dict[str, Any]])
+@router.get("/programmes", response_model=List[UQOProgramme])
 def fetch_programmes(departement: Departement, cycle: Literal["1", "2", "3"]):
     """
     Fetch the list of courses for a given department and cycle.

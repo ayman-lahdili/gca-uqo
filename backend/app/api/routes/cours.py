@@ -10,7 +10,7 @@ from app.schemas.read import (
     CoursFullRead,
 )
 
-router = APIRouter(prefix="/cours", tags=["campagne"])
+router = APIRouter(prefix="/cours", tags=["cours"])
 
 
 class CandidaturePayload(BaseModel):
