@@ -190,7 +190,7 @@ def get_campagnes(session: SessionDep) -> Any:
                 & (Activite.trimestre == campagne.trimestre)
             )
         ).all()
-        nbr_td_total = sum([activite.nombre_seance for activite in activite_td])
+        nbr_td_total = len([activite.nombre_seance for activite in activite_td])
 
         activite_tp = session.exec(
             select(Activite).where(
@@ -198,7 +198,7 @@ def get_campagnes(session: SessionDep) -> Any:
                 & (Activite.trimestre == campagne.trimestre)
             )
         ).all()
-        nbr_tp_total = sum([activite.nombre_seance for activite in activite_tp])
+        nbr_tp_total = len([activite.nombre_seance for activite in activite_tp])
 
         # Distribution des candidats
         etudiant = session.exec(
