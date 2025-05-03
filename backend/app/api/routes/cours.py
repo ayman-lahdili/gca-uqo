@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from app.api.deps import SessionDep, StorageDep
 from app.models import Cours, Etudiant, Candidature
 from app.schemas.enums import Campus
-from app.schemas.read import (
-    CoursFullRead,
+from app.schemas.responses import (
+    CoursFullResponse,
 )
 
 router = APIRouter(prefix="/cours", tags=["cours"])
@@ -23,7 +23,7 @@ class CandidaturePayload(BaseModel):
     email: str = ""
 
 
-@router.post("/{trimestre}/{sigle}/candidature", response_model=CoursFullRead)
+@router.post("/{trimestre}/{sigle}/candidature", response_model=CoursFullResponse)
 def add_candidature_to_cours(
     trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep
 ):

@@ -1,66 +1,32 @@
-from typing import Any, List, Dict
+from typing import Any, List
 
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
-from pydantic import BaseModel
 
 from app.api.deps import SessionDep, HoraireDep
 from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
-from app.schemas.read import (
-    CampagneFullRead,
-    CampagneRead,
+from app.schemas.responses import (
+    CampagneFullResponse,
+    CampagneResponse,
     CampagneStatus,
-    SeanceRead,
-    CoursRead,
+    SeanceResponse,
+    CoursResponse,
+    ChangeInfo,
+    ApprovalResponse,
+)
+from app.schemas.requests import (
+    CampagneCreateRequest,
+    CampagneUpdateRequest,
+    SeanceUpdateRequest,
 )
 
 from app.core.diffs import CoursDiffer
 
 router = APIRouter(prefix="/campagne", tags=["campagne"])
 
-
-class CampagneCoursRequestItem(BaseModel):
-    sigle: str
-    titre: str = ""
-
-
-class CampagneCreateRequest(BaseModel):
-    trimestre: int
-    config: Dict[str, Any] = {}
-    cours: List[CampagneCoursRequestItem]
-
-
-class CampagneUpdateRequest(BaseModel):
-    config: Dict[str, Any] | None = None
-    status: str | None = None
-    cours: List[CampagneCoursRequestItem] | None = None
-
-
-class ChangeInfo(BaseModel):
-    change_type: ChangeType
-    value: Dict[str, Any]
-
-
-class ApprovalResponse(BaseModel):
-    entity: Dict
-    change: ChangeInfo
-    approved: bool
-
-
-class ActiviteUpdateRequest(BaseModel):
-    id: int
-    candidature: List[int] | None = None
-    nombre_seance: int | None = None
-    status: ActiviteStatus | None = None
-
-
-class SeanceUpdateRequest(BaseModel):
-    activite: List[ActiviteUpdateRequest]
-
-
-@router.post("/", response_model=CampagneFullRead)
+@router.post("/", response_model=CampagneFullResponse)
 def create_campagne(
     payload: CampagneCreateRequest,
     session: SessionDep,
@@ -116,7 +82,7 @@ def create_campagne(
     return campagne
 
 
-@router.get("/", response_model=List[CampagneRead])
+@router.get("/", response_model=List[CampagneResponse])
 def get_campagnes(session: SessionDep) -> Any:
     campagnes = session.exec(select(Campagne)).all()
 
@@ -227,12 +193,12 @@ def get_campagnes(session: SessionDep) -> Any:
                 "nbr_assistant_cycle3": len(total_assistant_par_cycle[2]),
             },
         }
-        result.append(CampagneRead(**campagne_dict))
+        result.append(CampagneResponse(**campagne_dict))
 
     return result
 
 
-@router.get("/{trimestre}", response_model=CampagneFullRead)
+@router.get("/{trimestre}", response_model=CampagneFullResponse)
 def get_campagne_by_trimestre(
     trimestre: int,
     session: SessionDep,
@@ -246,7 +212,7 @@ def get_campagne_by_trimestre(
     return campagne
 
 
-@router.get("/{trimestre}/cours", response_model=List[CoursRead])
+@router.get("/{trimestre}/cours", response_model=List[CoursResponse])
 def get_cours_by_trimestre(
     trimestre: int,
     session: SessionDep,
@@ -260,7 +226,7 @@ def get_cours_by_trimestre(
     return campagne.cours
 
 
-@router.put("/{trimestre}", response_model=CampagneFullRead)
+@router.put("/{trimestre}", response_model=CampagneFullResponse)
 def update_campagne(
     trimestre: int,
     payload: CampagneUpdateRequest,
@@ -318,7 +284,7 @@ def update_campagne(
     return campagne
 
 
-@router.post("/{trimestre}/sync", response_model=CampagneFullRead)
+@router.post("/{trimestre}/sync", response_model=CampagneFullResponse)
 def sync_campagne(
     trimestre: int,
     session: SessionDep,
@@ -426,7 +392,7 @@ def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep)
 
 @router.patch(
     "/{trimestre}/{sigle}/{groupe}/{activite_id}/changes/approve",
-    response_model=SeanceRead,
+    response_model=SeanceResponse,
 )
 def approve_activite(
     trimestre: int, sigle: str, groupe: str, activite_id: int, session: SessionDep
@@ -462,7 +428,7 @@ def approve_activite(
     return seance
 
 
-@router.put("/{trimestre}/{sigle}/{groupe}", response_model=SeanceRead)
+@router.put("/{trimestre}/{sigle}/{groupe}", response_model=SeanceResponse)
 def modify_activity(
     trimestre: int,
     sigle: str,

@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel
-from typing import List, Dict
+from pydantic import BaseModel
+from typing import List, Dict, Any
 from datetime import datetime
 from app.schemas.enums import (
     ActiviteType,
@@ -10,10 +11,11 @@ from app.schemas.enums import (
     Note,
     CampagneConfig,
     ActiviteStatus,
+    ChangeType,
 )
 
 
-class EtudiantRead(SQLModel):
+class EtudiantResponse(SQLModel):
     id: int
     code_permanent: str
     email: str
@@ -25,11 +27,11 @@ class EtudiantRead(SQLModel):
     trimestre: int
 
 
-class EtudiantFullRead(EtudiantRead):
-    candidature: list["CandidatureReadNoResponsable"]
+class EtudiantFullResponse(EtudiantResponse):
+    candidature: list["CandidatureNoResponsableResponse"]
 
 
-class ActiviteRead(SQLModel):
+class ActiviteResponse(SQLModel):
     id: int
     type: ActiviteType | None = None
     mode: ActiviteMode | None = None
@@ -43,21 +45,21 @@ class ActiviteRead(SQLModel):
     nombre_seance: int
 
 
-class ActiviteFullRead(ActiviteRead):
-    responsable: List["CandidatureRead"]
+class ActiviteFullResponse(ActiviteResponse):
+    responsable: List["CandidatureResponse"]
 
 
-class SeanceRead(SQLModel):
+class SeanceResponse(SQLModel):
     trimestre: int
     sigle: str
     groupe: str
     campus: List[Campus]
-    activite: List[ActiviteFullRead] = []
+    activite: List[ActiviteFullResponse] = []
     change: Dict
     ressource: list[Dict[str, str | None]]
 
 
-class CoursRead(SQLModel):
+class CoursResponse(SQLModel):
     sigle: str
     trimestre: int
     titre: str
@@ -65,41 +67,51 @@ class CoursRead(SQLModel):
     cycle: int
 
 
-class CandidatureRead(SQLModel):
+class CandidatureResponse(SQLModel):
     id_etudiant: int
     note: Note
     sigle: str
     trimestre: int
-    etudiant: EtudiantRead
+    etudiant: EtudiantResponse
     titre: str
 
 
-class CandidatureFullRead(CandidatureRead):
-    activite: list[ActiviteFullRead]
+class CandidatureFullResponse(CandidatureResponse):
+    activite: list[ActiviteFullResponse]
 
 
-class CandidatureReadNoResponsable(CandidatureRead):
-    activite: list[ActiviteRead]
+class CandidatureNoResponsableResponse(CandidatureResponse):
+    activite: list[ActiviteResponse]
 
 
-class CoursFullRead(CoursRead):
-    seance: List[SeanceRead] = []
-    candidature: List[CandidatureRead]
+class CoursFullResponse(CoursResponse):
+    seance: List[SeanceResponse] = []
+    candidature: List[CandidatureResponse]
     change: Dict
 
 
-class CampagneFullRead(SQLModel):
+class CampagneFullResponse(SQLModel):
     id: int
     trimestre: int
     status: CampagneStatus
     config: CampagneConfig
-    cours: List[CoursFullRead] = []
+    cours: List[CoursFullResponse] = []
 
 
-class CampagneRead(SQLModel):
+class CampagneResponse(SQLModel):
     id: int
     trimestre: int
     status: CampagneStatus
     config: CampagneConfig
-    cours: List[CoursRead] = []
+    cours: List[CoursResponse] = []
     stats: Dict[str, float]
+
+
+class ChangeInfo(BaseModel):
+    change_type: ChangeType
+    value: Dict[str, Any]
+
+class ApprovalResponse(BaseModel):
+    entity: Dict
+    change: ChangeInfo
+    approved: bool

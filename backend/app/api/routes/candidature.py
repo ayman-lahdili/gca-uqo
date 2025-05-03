@@ -7,7 +7,7 @@ from sqlmodel import select
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.api.deps import SessionDep, StorageDep
-from app.schemas.read import EtudiantFullRead
+from app.schemas.responses import EtudiantFullResponse
 from app.models import Etudiant, Candidature, Campus, Campagne
 from app.schemas.enums import Note, CampagneStatus
 
@@ -20,7 +20,7 @@ class CandidatureCoursRequestItem(BaseModel):
     note: Note = Note.non_specifie
 
 
-@router.post("/", response_model=EtudiantFullRead)
+@router.post("/", response_model=EtudiantFullResponse)
 async def create_candidature(
     session: SessionDep,
     storage: StorageDep,
@@ -146,12 +146,12 @@ async def download_candidature_resume(
         )
 
 
-@router.get("/", response_model=list[EtudiantFullRead])
+@router.get("/", response_model=list[EtudiantFullResponse])
 def get_candidatures(trimestre: int, session: SessionDep):
     return session.exec(select(Etudiant).where(Etudiant.trimestre == trimestre)).all()
 
 
-@router.put("/{student_id}", response_model=EtudiantFullRead)
+@router.put("/{student_id}", response_model=EtudiantFullResponse)
 async def update_student(
     student_id: int,
     session: SessionDep,
