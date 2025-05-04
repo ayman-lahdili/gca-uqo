@@ -1,34 +1,30 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
-from app.initial_data import main
+from app.api.routes import campagnes, candidature, cours, uqo
 from app.core.config import settings
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    main()
-    yield
-    print("Cleaning up resources...")
-
-
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan,
-)
-
-# Set all CORS enabled origins
-if settings.all_cors_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.all_cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+def create_app():
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
     )
+    app.include_router(campagnes.router)
+    app.include_router(candidature.router)
+    app.include_router(cours.router)
+    app.include_router(uqo.router)
 
-app.include_router(api_router, prefix=settings.API_V1_STR)
+    if settings.all_cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.all_cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    
+    return app
+
+main = create_app()

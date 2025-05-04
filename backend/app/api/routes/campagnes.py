@@ -24,9 +24,9 @@ from app.schemas.requests import (
 
 from app.core.diffs import CoursDiffer
 
-router = APIRouter(prefix="/campagne", tags=["campagne"])
+router = APIRouter(tags=["campagne"])
 
-@router.post("/", response_model=CampagneFullResponse)
+@router.post("/v1/campagne/", response_model=CampagneFullResponse)
 def create_campagne(
     payload: CampagneCreateRequest,
     session: SessionDep,
@@ -82,7 +82,7 @@ def create_campagne(
     return campagne
 
 
-@router.get("/", response_model=List[CampagneResponse])
+@router.get("/v1/campagne/", response_model=List[CampagneResponse])
 def get_campagnes(session: SessionDep) -> Any:
     campagnes = session.exec(select(Campagne)).all()
 
@@ -198,7 +198,7 @@ def get_campagnes(session: SessionDep) -> Any:
     return result
 
 
-@router.get("/{trimestre}", response_model=CampagneFullResponse)
+@router.get("/v1/campagne/{trimestre}", response_model=CampagneFullResponse)
 def get_campagne_by_trimestre(
     trimestre: int,
     session: SessionDep,
@@ -212,7 +212,7 @@ def get_campagne_by_trimestre(
     return campagne
 
 
-@router.get("/{trimestre}/cours", response_model=List[CoursResponse])
+@router.get("/v1/campagne/{trimestre}/cours", response_model=List[CoursResponse])
 def get_cours_by_trimestre(
     trimestre: int,
     session: SessionDep,
@@ -226,7 +226,7 @@ def get_cours_by_trimestre(
     return campagne.cours
 
 
-@router.put("/{trimestre}", response_model=CampagneFullResponse)
+@router.put("/v1/campagne/{trimestre}", response_model=CampagneFullResponse)
 def update_campagne(
     trimestre: int,
     payload: CampagneUpdateRequest,
@@ -284,7 +284,7 @@ def update_campagne(
     return campagne
 
 
-@router.post("/{trimestre}/sync", response_model=CampagneFullResponse)
+@router.post("/v1/campagne/{trimestre}/sync", response_model=CampagneFullResponse)
 def sync_campagne(
     trimestre: int,
     session: SessionDep,
@@ -323,7 +323,7 @@ def sync_campagne(
     return campagne
 
 
-@router.patch("/{trimestre}/{sigle}/changes/approve", response_model=ApprovalResponse)
+@router.patch("/v1/campagne/{trimestre}/{sigle}/changes/approve", response_model=ApprovalResponse)
 def approve_course(trimestre: int, sigle: str, session: SessionDep):
     cours = session.exec(
         select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))
@@ -351,7 +351,7 @@ def approve_course(trimestre: int, sigle: str, session: SessionDep):
 
 
 @router.patch(
-    "/{trimestre}/{sigle}/{groupe}/changes/approve", response_model=ApprovalResponse
+    "/v1/campagne/{trimestre}/{sigle}/{groupe}/changes/approve", response_model=ApprovalResponse
 )
 def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep):
     seance = session.exec(
@@ -391,7 +391,7 @@ def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep)
 
 
 @router.patch(
-    "/{trimestre}/{sigle}/{groupe}/{activite_id}/changes/approve",
+    "/v1/campagne/{trimestre}/{sigle}/{groupe}/{activite_id}/changes/approve",
     response_model=SeanceResponse,
 )
 def approve_activite(
@@ -428,7 +428,7 @@ def approve_activite(
     return seance
 
 
-@router.put("/{trimestre}/{sigle}/{groupe}", response_model=SeanceResponse)
+@router.put("/v1/campagne/{trimestre}/{sigle}/{groupe}", response_model=SeanceResponse)
 def modify_activity(
     trimestre: int,
     sigle: str,
