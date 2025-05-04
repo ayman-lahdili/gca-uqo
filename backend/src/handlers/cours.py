@@ -3,10 +3,10 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import select
 from pydantic import BaseModel
 
-from app.api.deps import SessionDep, StorageDep
-from app.models import Cours, Etudiant, Candidature
-from app.schemas.enums import Campus
-from app.schemas.responses import (
+from src.dependencies.deps import SessionDep, StorageDep
+from src.models import Cours, Etudiant, Candidature
+from src.schemas.enums import Campus
+from src.schemas.responses import (
     CoursFullResponse,
 )
 

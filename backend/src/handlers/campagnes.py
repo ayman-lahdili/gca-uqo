@@ -4,10 +4,10 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
-from app.api.deps import SessionDep, HoraireDep
-from app.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from app.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
-from app.schemas.responses import (
+from src.dependencies.deps import SessionDep, HoraireDep
+from src.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
+from src.schemas.enums import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
+from src.schemas.responses import (
     CampagneFullResponse,
     CampagneResponse,
     CampagneStatus,
@@ -16,13 +16,13 @@ from app.schemas.responses import (
     ChangeInfo,
     ApprovalResponse,
 )
-from app.schemas.requests import (
+from src.schemas.requests import (
     CampagneCreateRequest,
     CampagneUpdateRequest,
     SeanceUpdateRequest,
 )
 
-from app.core.diffs import CoursDiffer
+from src.core.diffs import CoursDiffer
 
 router = APIRouter(tags=["campagne"])
 

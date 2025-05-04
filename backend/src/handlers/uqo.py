@@ -3,8 +3,8 @@ from typing import Any, List, Dict, Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.core.uqo import UQOCoursService, UQOProgramService
-from app.schemas.enums import Departement
+from src.core.uqo import UQOCoursService, UQOProgramService
+from src.schemas.enums import Departement
 
 router = APIRouter(prefix="/uqo", tags=["uqo"])
 

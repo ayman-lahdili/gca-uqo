@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import Depends, Request, Path, HTTPException
 from sqlmodel import Session
 
-from app.core.db import engine
-from app.core.uqo import UQOHoraireService
-from app.core.file import StorageProvider, LocalStorageProvider
+from src.core.db import engine
+from src.core.uqo import UQOHoraireService
+from src.core.file import StorageProvider, LocalStorageProvider
 
 
 def get_db() -> Generator[Session, None, None]:

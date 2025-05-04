@@ -1,8 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import Any, List
 
-from app.models import Cours, Activite, Seance
-from app.schemas.enums import ChangeType, ActiviteStatus
+from src.models import Cours, Activite, Seance
+from src.schemas.enums import ChangeType, ActiviteStatus
 
 
 @dataclass

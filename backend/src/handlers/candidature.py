@@ -6,10 +6,10 @@ from fastapi.responses import FileResponse
 from sqlmodel import select
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from app.api.deps import SessionDep, StorageDep
-from app.schemas.responses import EtudiantFullResponse
-from app.models import Etudiant, Candidature, Campus, Campagne
-from app.schemas.enums import Note, CampagneStatus
+from src.dependencies.deps import SessionDep, StorageDep
+from src.schemas.responses import EtudiantFullResponse
+from src.models import Etudiant, Candidature, Campus, Campagne
+from src.schemas.enums import Note, CampagneStatus
 
 router = APIRouter(prefix="/candidature", tags=["candidature"])
 

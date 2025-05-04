@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 
 from typing import List, Literal, Dict, Any
 
-from app.models import Cours, Activite, Seance
-from app.schemas.enums import (
+from src.models import Cours, Activite, Seance
+from src.schemas.enums import (
     Campus,
     ActiviteType,
     ActiviteMode,

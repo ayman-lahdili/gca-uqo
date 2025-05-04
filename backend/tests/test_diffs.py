@@ -3,17 +3,17 @@ import json
 from typing import Dict, Any
 from copy import deepcopy, copy
 
-from app.core.uqo import UQOHoraireService
-from app.core.diffs import CoursDiffer
-from app.models import Cours
-from app.schemas.enums import ChangeType, ActiviteType, Campus
+from src.core.uqo import UQOHoraireService
+from src.core.diffs import CoursDiffer
+from src.models import Cours
+from src.schemas.enums import ChangeType, ActiviteType, Campus
 
 
 class TestCoursDiffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load the test data
-        with open("app/tests/files/small_response.json", "r", encoding="utf-8") as f:
+        with open("tests/files/small_response.json", "r", encoding="utf-8") as f:
             cls.test_data = json.load(f)
 
         # Initialize the parser
@@ -24,7 +24,7 @@ class TestCoursDiffer(unittest.TestCase):
 
     def setUp(self):
         # Create fresh copies for each test
-        with open("app/tests/files/small_response.json", "r", encoding="utf-8") as f:
+        with open("tests/files/small_response.json", "r", encoding="utf-8") as f:
             test_data = json.load(f)
         self.base_course = self.parser._parse_course(test_data[1])
         self.test_data = test_data  # Store for create_modified_course
