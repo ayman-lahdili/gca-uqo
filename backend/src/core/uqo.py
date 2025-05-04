@@ -52,7 +52,12 @@ class UQOProgramService:
                     if program["CdSectHtml"] == departement
                     and program["CdCyc"] == cycle
                 ]
-                return result
+                unique = dict((obj["CdPrgAdm"], obj) for obj in result).values()
+
+                return [
+                    {"sigle": c["CdPrgAdm"], "label": c["CdPrgAdm"] + " - " + c["LblPrg"]}
+                    for c in unique
+                ]
             except json.JSONDecodeError as e:
                 self.__debug_parse_error(json_string, e)
                 raise UQOAPIException(f"JSON parsing error: {str(e)}")

@@ -10,7 +10,7 @@ from src.schemas.responses import (
     CoursFullResponse,
 )
 
-router = APIRouter(prefix="/cours", tags=["cours"])
+router = APIRouter(tags=["cours"])
 
 
 class CandidaturePayload(BaseModel):
@@ -23,7 +23,7 @@ class CandidaturePayload(BaseModel):
     email: str = ""
 
 
-@router.post("/{trimestre}/{sigle}/candidature", response_model=CoursFullResponse)
+@router.post("/v1/cours/{trimestre}/{sigle}/candidature", response_model=CoursFullResponse)
 def add_candidature_to_cours(
     trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep
 ):
@@ -84,7 +84,7 @@ def add_candidature_to_cours(
     return cours
 
 
-@router.post("/{trimestre}/{sigle}/resumes", response_class=StreamingResponse)
+@router.post("/v1/cours/{trimestre}/{sigle}/resumes", response_class=StreamingResponse)
 async def download_multiple_resumes(
     trimestre: int, sigle: str, session: SessionDep, storage: StorageDep
 ):

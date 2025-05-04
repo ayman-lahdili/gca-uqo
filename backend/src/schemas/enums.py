@@ -59,6 +59,7 @@ JourSemaine = Literal[
 
 Departement = Literal["DII", "INFOR"]
 
+Cycle = Literal["1", "2", "3"]
 
 class ActiviteConfig(BaseModel):
     preparation: float
@@ -72,7 +73,3 @@ class CampagneConfig(BaseModel):
         ActiviteType.TP: ActiviteConfig(preparation=2, travail=3),
     }
 
-
-if __name__ == "__main__":
-    config = CampagneConfig().model_dump_json()
-    print(config)

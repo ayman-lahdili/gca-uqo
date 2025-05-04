@@ -11,7 +11,7 @@ from src.schemas.responses import EtudiantFullResponse
 from src.models import Etudiant, Candidature, Campus, Campagne
 from src.schemas.enums import Note, CampagneStatus
 
-router = APIRouter(prefix="/candidature", tags=["candidature"])
+router = APIRouter(tags=["candidature"])
 
 
 class CandidatureCoursRequestItem(BaseModel):
@@ -20,7 +20,7 @@ class CandidatureCoursRequestItem(BaseModel):
     note: Note = Note.non_specifie
 
 
-@router.post("/", response_model=EtudiantFullResponse)
+@router.post("/v1/candidature/", response_model=EtudiantFullResponse)
 async def create_candidature(
     session: SessionDep,
     storage: StorageDep,
@@ -122,7 +122,7 @@ async def create_candidature(
     return new_student
 
 
-@router.get("/{trimestre}/{student_id}/resume", response_class=FileResponse)
+@router.get("/v1/candidature/{trimestre}/{student_id}/resume", response_class=FileResponse)
 async def download_candidature_resume(
     student_id: int,
     trimestre: int,
@@ -146,12 +146,12 @@ async def download_candidature_resume(
         )
 
 
-@router.get("/", response_model=list[EtudiantFullResponse])
+@router.get("/v1/candidature/", response_model=list[EtudiantFullResponse])
 def get_candidatures(trimestre: int, session: SessionDep):
     return session.exec(select(Etudiant).where(Etudiant.trimestre == trimestre)).all()
 
 
-@router.put("/{student_id}", response_model=EtudiantFullResponse)
+@router.put("/v1/candidature/{student_id}", response_model=EtudiantFullResponse)
 async def update_student(
     student_id: int,
     session: SessionDep,
@@ -267,7 +267,7 @@ async def update_student(
     return student
 
 
-@router.delete("/{student_id}")
+@router.delete("/v1/candidature/{student_id}")
 def delete_student(student_id: int, session: SessionDep, storage: StorageDep):
     student = session.get(Etudiant, student_id)
     if not student:
