@@ -5,7 +5,7 @@ from src.main import main  # adjust based on your actual app import
 from src.dependencies.context import context_dependency
 from src.config import settings
 
-@pytest.fixture(scope="package")
+@pytest.fixture(scope="function")
 def client():
-    asyncio.run(context_dependency.initialize(settings=settings))
-    return TestClient(main)
+    with TestClient(main) as test_client:
+        yield test_client
