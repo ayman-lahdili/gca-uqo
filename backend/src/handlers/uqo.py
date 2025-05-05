@@ -27,3 +27,13 @@ def get_programmes(
 ):
     uqo_service = context.factory.create_uqo_programme_service()
     return uqo_service.get_programmes(departement=departement, cycle=cycle)
+
+
+@router.get("/v1/uqo/{trimestre}/horaire")
+def get_horaire(
+    *,
+    trimestre: int,
+    context: Context,
+):
+    uqo_service = context.factory.create_uqo_horaire_service(trimestre=trimestre)
+    return uqo_service.get_horaire(trimestre=trimestre)

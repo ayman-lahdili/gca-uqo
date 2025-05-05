@@ -2,7 +2,7 @@ import json
 import requests
 import re
 from typing import Any, Dict, List, Literal
-from src.schemas.uqo import Departement
+from src.schemas.uqo import Departement, UQOProgramme
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -16,7 +16,7 @@ class UQOProgrammeService:
 
     def get_programmes(
         self, departement: Departement, cycle: Literal["1", "2", "3"]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[UQOProgramme]:
         url = "https://etudier.uqo.ca/programmes"
         pattern = re.compile(r"jsonLstRes\s*=\s*(\[.*)")
 
@@ -42,7 +42,7 @@ class UQOProgrammeService:
                 unique = dict((obj["CdPrgAdm"], obj) for obj in result).values()
 
                 return [
-                    {"sigle": c["CdPrgAdm"], "label": c["CdPrgAdm"] + " - " + c["LblPrg"]}
+                    UQOProgramme(**{"sigle": c["CdPrgAdm"], "label": c["CdPrgAdm"] + " - " + c["LblPrg"]})
                     for c in unique
                 ]
             except json.JSONDecodeError as e:
