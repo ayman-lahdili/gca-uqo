@@ -11,7 +11,7 @@ router = APIRouter(tags=["uqo"])
 @router.get("/v1/uqo/cours")
 async def get_courses(
     *,
-    departement: Departement, 
+    departement: Departement,
     context: Context,
 ) -> List[UQOCours]:
     uqo_service = context.factory.create_uqo_course_service()
@@ -21,7 +21,7 @@ async def get_courses(
 @router.get("/v1/uqo/programmes", response_model=List[UQOProgramme])
 def get_programmes(
     *,
-    departement: Departement, 
+    departement: Departement,
     cycle: Cycle,
     context: Context,
 ):

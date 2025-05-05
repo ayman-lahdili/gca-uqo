@@ -8,14 +8,13 @@ from src.handlers import campagnes, candidature, cours, uqo
 from src.config import settings
 from src.dependencies.context import context_dependency
 
-def create_app():
 
+def create_app():
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         await context_dependency.initialize(settings)
         yield
         await context_dependency.aclose()
-
 
     app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -35,7 +34,8 @@ def create_app():
             allow_methods=["*"],
             allow_headers=["*"],
         )
-    
+
     return app
+
 
 main = create_app()

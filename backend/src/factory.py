@@ -8,6 +8,7 @@ from src.schemas.uqo import UQOCours, UQOProgramme
 from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
 from src.cache import AsyncCache
 
+
 @dataclass(frozen=True, slots=True)
 class ProcessContext:
     """Per-process application context.
@@ -18,6 +19,7 @@ class ProcessContext:
     request creates a new scoped session that's removed at the end of the
     session to ensure that all transactions are committed or abandoned.
     """
+
     settings: Settings
     uqo_cours_cache: AsyncCache[list[UQOCours]]
 
@@ -27,7 +29,7 @@ class ProcessContext:
             settings=settings,
             uqo_cours_cache=AsyncCache(10),
         )
-    
+
     async def aclose(self) -> None:
         """Clean up a process context.
 
@@ -58,7 +60,7 @@ class Factory:
     ) -> None:
         self.session = session
         self._context = context
-    
+
     async def aclose(self) -> None:
         """Shut down the factory.
 
@@ -74,10 +76,9 @@ class Factory:
         return UQOCoursService(
             cours_cache=self._context.uqo_cours_cache,
         )
-    
+
     def create_uqo_programme_service(self) -> UQOProgrammeService:
         return UQOProgrammeService()
 
     def create_uqo_horaire_service(self, trimestre: int) -> UQOHoraireService:
         return UQOHoraireService(trimestre)
-    

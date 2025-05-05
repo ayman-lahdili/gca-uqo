@@ -61,6 +61,7 @@ Departement = Literal["DII", "INFOR"]
 
 Cycle = Literal["1", "2", "3"]
 
+
 class ActiviteConfig(BaseModel):
     preparation: float
     travail: float
@@ -73,6 +74,7 @@ class CampagneConfig(BaseModel):
         ActiviteType.TP: ActiviteConfig(preparation=2, travail=3),
     }
 
+
 class UQOCours(BaseModel):
     sigle: str
     titre: str
@@ -80,7 +82,7 @@ class UQOCours(BaseModel):
     credit: str
     préables: List[str] = []
 
+
 class UQOProgramme(BaseModel):
     sigle: str
     label: str
-    

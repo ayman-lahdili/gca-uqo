@@ -3,18 +3,9 @@ from datetime import datetime
 import json
 from typing import Dict, List, Any
 
-from src.models import (
-    Cours,
-    Seance,
-    Activite
-)
-from src.schemas.uqo import (    
-    ActiviteType,
-    ActiviteMode,
-    ChangeType,
-    Campus,
-    JourSemaine
-)
+from src.models import Cours, Seance, Activite
+from src.schemas.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine
+
 
 class UQOHoraireService:
     def __init__(self, trimestre) -> None:
@@ -93,6 +84,7 @@ class UQOHoraireService:
                 for seance in cours["LstActCrs"]
             ],
         )
+
 
 def _parse_campus(unparsed: str) -> List[Campus]:
     unparsed = unparsed.strip().lower()

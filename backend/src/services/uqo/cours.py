@@ -5,20 +5,17 @@ import asyncio
 from src.schemas.uqo import Departement, UQOCours
 from src.cache import AsyncCache
 
+
 class UQOCoursService:
     """Service for retrieving course information from UQO website.
-    
+
     This implementation fetches a new token for each request and relies on
     the AsyncCache for concurrency handling to prevent duplicate requests.
     """
-    
-    def __init__(
-        self,
-        *,
-        cours_cache: AsyncCache[List[UQOCours]]
-    ) -> None:
+
+    def __init__(self, *, cours_cache: AsyncCache[List[UQOCours]]) -> None:
         """Initialize the UQO course service.
-        
+
         Parameters
         ----------
         cours_cache : AsyncCache[List[UQOCours]]
@@ -26,24 +23,24 @@ class UQOCoursService:
         """
         self.url = "https://etudier.uqo.ca/cours"
         self._cours_cache = cours_cache
-        
+
     async def get_courses(self, departement: Departement) -> List[UQOCours]:
         """Get courses for a specific department.
-        
+
         This method uses the cache to avoid redundant HTTP requests,
         and ensures only one HTTP request is made per department
         even with concurrent calls.
-        
+
         Parameters
         ----------
         departement : Departement
             The department code to get courses for.
-            
+
         Returns
         -------
         List[UQOCours]
             List of courses for the specified department.
-            
+
         Raises
         ------
         httpx.HTTPError
@@ -53,31 +50,30 @@ class UQOCoursService:
         """
         # Convert department to string for use as cache key
         dept_key = str(departement)
-        
+
         # Use the cache's get_or_create to handle concurrency and prevent dog-pile
         return await self._cours_cache.get_or_create(
-            dept_key,
-            lambda: self._fetch_courses(departement)
+            dept_key, lambda: self._fetch_courses(departement)
         )
-    
+
     async def _fetch_courses(self, departement: Departement) -> List[UQOCours]:
         """Fetch courses from the UQO website.
-        
+
         For each fetch, this method will:
         1. Get a fresh token and headers
         2. Make the request with the token
         3. Parse the results
-        
+
         Parameters
         ----------
         departement : Departement
             The department code to get courses for.
-            
+
         Returns
         -------
         List[UQOCours]
             List of courses for the specified department.
-            
+
         Raises
         ------
         httpx.HTTPError
@@ -88,7 +84,7 @@ class UQOCoursService:
         try:
             # Get a fresh token and headers for this specific request
             token, headers = await self._get_fresh_token()
-            
+
             # Prepare the form data
             data = {
                 "CritRech": "",
@@ -97,32 +93,32 @@ class UQOCoursService:
                 "TypeAff": "SigCrs",
                 "__RequestVerificationToken": token,
             }
-            
+
             # Make the request
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(self.url, headers=headers, data=data)
                 response.raise_for_status()
-                
+
                 # Parse and return the results
                 return self._parse_courses_html(response.text)
-                
+
         except httpx.HTTPError as e:
             print(f"HTTP error fetching courses for {departement}: {str(e)}")
             raise
         except Exception as e:
             print(f"Error fetching courses for {departement}: {str(e)}")
             raise ValueError(f"Failed to fetch or parse courses: {str(e)}")
-    
+
     async def _get_fresh_token(self) -> tuple[str, Dict[str, str]]:
         """Get a fresh token and headers for making a request.
-        
+
         For each new request, we need a fresh token from the UQO website.
-        
+
         Returns
         -------
         tuple[str, Dict[str, str]]
             A tuple containing (token, headers) needed for making a request.
-            
+
         Raises
         ------
         httpx.HTTPError
@@ -131,24 +127,28 @@ class UQOCoursService:
             If the token couldn't be found in the response.
         """
         headers = {}
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Get the initial page to extract the token
             response = await client.get(self.url)
             response.raise_for_status()
-            
+
             # Extract token from cookies
             for cookie in client.cookies.jar:
                 if cookie.name.startswith(".AspNetCore.Antiforgery."):
                     if cookie.value:
                         headers = {"Cookie": f"{cookie.name}={cookie.value}"}
                     break
-            
+
             # Extract token from HTML
             soup = BeautifulSoup(response.text, "html.parser")
-            token_input: Any = soup.find("input", {"name": "__RequestVerificationToken"})
-            
-            assert token_input and "value" in token_input.attrs, "Token not found in HTML"
+            token_input: Any = soup.find(
+                "input", {"name": "__RequestVerificationToken"}
+            )
+
+            assert token_input and "value" in token_input.attrs, (
+                "Token not found in HTML"
+            )
             token = token_input["value"]
             return token, headers
 
@@ -202,20 +202,22 @@ class UQOCoursService:
                 prereq = [link.text.strip() for link in prereq_links]
 
             courses.append(
-                UQOCours(**{
-                    "sigle": sigle,
-                    "titre": titre,
-                    "cycle": cycle,
-                    "credit": credit,
-                    "préalable": prereq,
-                })
+                UQOCours(
+                    **{
+                        "sigle": sigle,
+                        "titre": titre,
+                        "cycle": cycle,
+                        "credit": credit,
+                        "préalable": prereq,
+                    }
+                )
             )
 
         return courses
-            
+
     async def invalidate_cache(self, departement: Optional[Departement] = None) -> None:
         """Invalidate the cache for a specific department or all departments.
-        
+
         Parameters
         ----------
         departement : Optional[Departement], optional

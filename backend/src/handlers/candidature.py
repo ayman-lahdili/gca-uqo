@@ -38,7 +38,10 @@ async def create_candidature(
     resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)"),
 ):
     campagne = session.exec(
-        select(Campagne).where((Campagne.trimestre == trimestre) & (Campagne.status == CampagneStatus.en_cours))
+        select(Campagne).where(
+            (Campagne.trimestre == trimestre)
+            & (Campagne.status == CampagneStatus.en_cours)
+        )
     ).first()
 
     if not campagne:
@@ -122,7 +125,9 @@ async def create_candidature(
     return new_student
 
 
-@router.get("/v1/candidature/{trimestre}/{student_id}/resume", response_class=FileResponse)
+@router.get(
+    "/v1/candidature/{trimestre}/{student_id}/resume", response_class=FileResponse
+)
 async def download_candidature_resume(
     student_id: int,
     trimestre: int,

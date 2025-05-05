@@ -8,6 +8,7 @@ from src.factory import Factory, ProcessContext
 from src.config import Settings
 from src.dependencies.db_session import SessionDep
 
+
 @dataclass(slots=True)
 class RequestContext:
     """Holds the incoming request and its surrounding context.
@@ -27,6 +28,7 @@ class RequestContext:
     factory: Factory
     """The component factory."""
 
+
 class ContextDependency:
     """Provide a per-request context as a FastAPI dependency.
 
@@ -39,12 +41,9 @@ class ContextDependency:
     def __init__(self) -> None:
         self._settings: Settings | None = None
         self._process_context: ProcessContext | None = None
-    
+
     async def __call__(
-        self,
-        *,
-        request: Request,
-        session: SessionDep
+        self, *, request: Request, session: SessionDep
     ) -> RequestContext:
         if not self._settings or not self._process_context:
             raise RuntimeError("ContextDependency not initialized")
@@ -64,14 +63,13 @@ class ContextDependency:
             await self._process_context.aclose()
         self._settings = None
         self._process_context = None
-    
-    async def initialize(
-        self, settings: Settings
-    ) -> None:
+
+    async def initialize(self, settings: Settings) -> None:
         if self._process_context:
             await self._process_context.aclose()
         self._settings = settings
         self._process_context = await ProcessContext.from_config(settings)
+
 
 context_dependency = ContextDependency()
 Context = Annotated[RequestContext, Depends(context_dependency)]

@@ -7,7 +7,13 @@ from sqlmodel import select
 from src.dependencies.db_session import SessionDep, HoraireDep
 from src.dependencies.context import Context
 from src.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from src.schemas.uqo import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
+from src.schemas.uqo import (
+    CoursStatus,
+    ChangeType,
+    CampagneConfig,
+    ActiviteType,
+    ActiviteStatus,
+)
 from src.schemas.responses import (
     CampagneFullResponse,
     CampagneResponse,
@@ -27,6 +33,7 @@ from src.core.diffs import CoursDiffer
 
 router = APIRouter(tags=["campagne"])
 
+
 @router.post("/v1/campagne/", response_model=CampagneFullResponse)
 def create_campagne(
     payload: CampagneCreateRequest,
@@ -40,11 +47,13 @@ def create_campagne(
             status_code=404,
             detail=f"Campagne already exists for trimestre {payload.trimestre}",
         )
-        
+
     # Cannot create a campagne in a trimestre more that 3 trimestres in the future
     def is_more_than_3_trimestres_ahead(target_trimestre: int) -> bool:
         now = datetime.now()
-        current_trimestre = now.year * 10 + (1 if now.month <= 6 else 2 if now.month <= 9 else 3)
+        current_trimestre = now.year * 10 + (
+            1 if now.month <= 6 else 2 if now.month <= 9 else 3
+        )
         to_index = lambda t: (t // 10) * 3 + (t % 10)
         return to_index(target_trimestre) - to_index(current_trimestre) > 3
 
@@ -325,7 +334,9 @@ def sync_campagne(
     return campagne
 
 
-@router.patch("/v1/campagne/{trimestre}/{sigle}/changes/approve", response_model=ApprovalResponse)
+@router.patch(
+    "/v1/campagne/{trimestre}/{sigle}/changes/approve", response_model=ApprovalResponse
+)
 def approve_course(trimestre: int, sigle: str, session: SessionDep):
     cours = session.exec(
         select(Cours).where((Cours.trimestre == trimestre) & (Cours.sigle == sigle))
@@ -353,7 +364,8 @@ def approve_course(trimestre: int, sigle: str, session: SessionDep):
 
 
 @router.patch(
-    "/v1/campagne/{trimestre}/{sigle}/{groupe}/changes/approve", response_model=ApprovalResponse
+    "/v1/campagne/{trimestre}/{sigle}/{groupe}/changes/approve",
+    response_model=ApprovalResponse,
 )
 def approve_seance(trimestre: int, sigle: str, groupe: str, session: SessionDep):
     seance = session.exec(

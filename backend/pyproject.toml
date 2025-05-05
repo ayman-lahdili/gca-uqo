@@ -23,5 +23,6 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
+    "locust>=2.37.0",
     "ruff>=0.11.6",
 ]

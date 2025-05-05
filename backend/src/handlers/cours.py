@@ -23,7 +23,9 @@ class CandidaturePayload(BaseModel):
     email: str = ""
 
 
-@router.post("/v1/cours/{trimestre}/{sigle}/candidature", response_model=CoursFullResponse)
+@router.post(
+    "/v1/cours/{trimestre}/{sigle}/candidature", response_model=CoursFullResponse
+)
 def add_candidature_to_cours(
     trimestre: int, sigle: str, payload: CandidaturePayload, session: SessionDep
 ):
@@ -36,7 +38,8 @@ def add_candidature_to_cours(
 
     student = session.exec(
         select(Etudiant).where(
-            (Etudiant.code_permanent == payload.code_permanent) & (Etudiant.trimestre == trimestre)
+            (Etudiant.code_permanent == payload.code_permanent)
+            & (Etudiant.trimestre == trimestre)
         )
     ).first()
 

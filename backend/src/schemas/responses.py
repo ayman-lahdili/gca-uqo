@@ -111,6 +111,7 @@ class ChangeInfo(BaseModel):
     change_type: ChangeType
     value: Dict[str, Any]
 
+
 class ApprovalResponse(BaseModel):
     entity: Dict
     change: ChangeInfo

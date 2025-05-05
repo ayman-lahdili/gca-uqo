@@ -55,7 +55,10 @@ class UQOProgramService:
                 unique = dict((obj["CdPrgAdm"], obj) for obj in result).values()
 
                 return [
-                    {"sigle": c["CdPrgAdm"], "label": c["CdPrgAdm"] + " - " + c["LblPrg"]}
+                    {
+                        "sigle": c["CdPrgAdm"],
+                        "label": c["CdPrgAdm"] + " - " + c["LblPrg"],
+                    }
                     for c in unique
                 ]
             except json.JSONDecodeError as e:
