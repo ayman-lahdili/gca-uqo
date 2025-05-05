@@ -1,65 +1,168 @@
 import httpx
 from bs4 import BeautifulSoup
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+import asyncio
 from src.schemas.uqo import Departement, UQOCours
-from src.cache import UQOCache
+from src.cache import AsyncCache
+
+class TokenManager:
+    """Manages authentication tokens for UQO website.
+    
+    This class handles token retrieval and ensures tokens are refreshed
+    when needed in a thread-safe manner.
+    """
+    
+    def __init__(self, base_url: str):
+        self._base_url = base_url
+        self._token: Optional[str] = None
+        self._headers: Dict[str, str] = {}
+        self._lock = asyncio.Lock()
+        self._last_refresh = 0
+        self._refresh_interval = 1800  # 30 minutes in seconds
+        
+    async def get_token_and_headers(self) -> tuple[str, Dict[str, str]]:
+        """Get the current token and headers, refreshing if necessary.
+        
+        Returns
+        -------
+        tuple[str, Dict[str, str]]
+            The current token and headers needed for requests.
+        """
+        import time
+        
+        current_time = time.time()
+        
+        # Check if we need to refresh the token
+        if (self._token is None or 
+            current_time - self._last_refresh > self._refresh_interval):
+            async with self._lock:
+                # Check again in case another task refreshed while we were waiting
+                if (self._token is None or 
+                    current_time - self._last_refresh > self._refresh_interval):
+                    await self._refresh_token()
+                    self._last_refresh = time.time()
+        
+        assert self._token is not None, "Token should not be None after refresh"
+
+        return self._token, self._headers
+        
+    async def _refresh_token(self) -> None:
+        """Refresh the authentication token from the UQO website."""
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(self._base_url)
+                response.raise_for_status()
+                
+                # Extract token from cookies
+                for cookie in client.cookies.jar:
+                    if cookie.name.startswith(".AspNetCore.Antiforgery."):
+                        if cookie.value:
+                            self._headers = {"Cookie": f"{cookie.name}={cookie.value}"}
+                        break
+                
+                # Extract token from HTML
+                soup = BeautifulSoup(response.text, "html.parser")
+                token_input: Any = soup.find("input", {"name": "__RequestVerificationToken"})
+                
+                assert token_input and "value" in token_input.attrs, "Token input not found"
+                self._token = token_input["value"]
+                    
+        except (httpx.HTTPError, ValueError) as e:
+            # Log the error but don't raise; we'll try again next time
+            print(f"Error refreshing token: {str(e)}")
+            # If we've never had a token, we need to raise
+            if self._token is None:
+                raise
 
 class UQOCoursService:
-    def __init__(
-        self,
-        *,
-        cours_cache: UQOCache[List[UQOCours]]
-    ) -> None:
+    """Service for retrieving course information from UQO website."""
+    
+    def __init__(self, cours_cache: AsyncCache) -> None:  # Default 1 hour TTL
+        """Initialize the UQO course service.
+        
+        Parameters
+        ----------
+        cache_ttl_seconds : int, optional
+            Time-to-live for cache entries in seconds, by default 3600 (1 hour)
+        """
         self.url = "https://etudier.uqo.ca/cours"
-        self.headers = {}
-        self._cours_cache = cours_cache
-        self.current_token = None
+        self._token_manager = TokenManager(self.url)
+        self._courses_cache = cours_cache
 
-    async def initialize(self):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self.url)
-
-            # Extract token from cookies
-            for cookie in client.cookies.jar:
-                if cookie.name.startswith(".AspNetCore.Antiforgery."):
-                    if cookie.value:
-                        self.headers = {"Cookie": cookie.name + "=" + cookie.value}
-                    else:
-                        print("No cookie")
-                    break
-
-            if not self.current_token:
-                soup = BeautifulSoup(response.text, "html.parser")
-                token_input: Any = soup.find(
-                    "input", {"name": "__RequestVerificationToken"}
-                )
-                if token_input:
-                    self.current_token = token_input["value"]
-
-    async def get_courses(self, departement: Departement):
-        course = self._cours_cache.get(departement)
-        if course is not None:
-            return course
-
-        if not self.current_token:
-            # TODO fix to make concurrent and cache safe
-            await self.initialize()
-
-        data = {
-            "CritRech": "",
-            "Module": departement,
-            "Cycle": "",
-            "TypeAff": "SigCrs",
-            "__RequestVerificationToken": self.current_token,
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.post(self.url, headers=self.headers, data=data)
-            parsed = self.parse_courses_html(response.text, data)
-            self._cours_cache.store(departement, parsed)
-            return parsed
-
-    @staticmethod
-    def parse_courses_html(html_content: str, data: Dict[str, str]) -> List[UQOCours]:
+    async def get_courses(self, departement: Departement) -> List[UQOCours]:
+        """Get courses for a specific department.
+        
+        This method uses the cache to avoid redundant HTTP requests,
+        and ensures only one HTTP request is made per department
+        even with concurrent calls.
+        
+        Parameters
+        ----------
+        departement : Departement
+            The department code to get courses for.
+            
+        Returns
+        -------
+        List[UQOCours]
+            List of courses for the specified department.
+            
+        Raises
+        ------
+        httpx.HTTPError
+            If there's an error communicating with the UQO website.
+        ValueError
+            If the response couldn't be parsed correctly.
+        """
+        # Use the cache with a creator function
+        return await self._courses_cache.get_or_create(
+            str(departement),  # Ensure the key is a string
+            lambda: self._fetch_courses(departement)
+        )
+    
+    async def _fetch_courses(self, departement: Departement) -> List[UQOCours]:
+        """Fetch courses from the UQO website.
+        
+        This is the expensive operation that should be cached.
+        
+        Parameters
+        ----------
+        departement : Departement
+            The department code to get courses for.
+            
+        Returns
+        -------
+        List[UQOCours]
+            List of courses for the specified department.
+        """
+        try:
+            # Get token and headers - this handles token refreshing internally
+            token, headers = await self._token_manager.get_token_and_headers()
+            
+            # Prepare the form data
+            data = {
+                "CritRech": "",
+                "Module": departement,
+                "Cycle": "",
+                "TypeAff": "SigCrs",
+                "__RequestVerificationToken": token,
+            }
+            
+            # Make the HTTP request
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(self.url, headers=headers, data=data)
+                response.raise_for_status()
+                
+                # Parse the response
+                return self._parse_courses_html(response.text)
+                
+        except httpx.HTTPError as e:
+            print(f"HTTP error fetching courses for {departement}: {str(e)}")
+            raise
+        except Exception as e:
+            print(f"Error fetching courses for {departement}: {str(e)}")
+            raise ValueError(f"Failed to fetch or parse courses: {str(e)}")
+    
+    def _parse_courses_html(self, html_content: str) -> List[UQOCours]:
         print("Parsing HTML content to extract courses")
         soup = BeautifulSoup(html_content, "html.parser")
 
@@ -119,5 +222,16 @@ class UQOCoursService:
             )
 
         return courses
-    
-
+            
+    async def invalidate_cache(self, departement: Optional[Departement] = None) -> None:
+        """Invalidate the cache for a specific department or all departments.
+        
+        Parameters
+        ----------
+        departement : Optional[Departement], optional
+            The department to invalidate, or None to invalidate all, by default None
+        """
+        if departement is not None:
+            await self._courses_cache.invalidate(str(departement))
+        else:
+            await self._courses_cache.clear()

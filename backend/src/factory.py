@@ -6,7 +6,7 @@ from src.config import Settings
 
 from src.schemas.uqo import UQOCours, UQOProgramme
 from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
-from src.cache import UQOCache
+from src.cache import AsyncCache
 
 @dataclass(frozen=True, slots=True)
 class ProcessContext:
@@ -19,13 +19,13 @@ class ProcessContext:
     session to ensure that all transactions are committed or abandoned.
     """
     settings: Settings
-    uqo_cours_cache: UQOCache[list[UQOCours]]
+    uqo_cours_cache: AsyncCache[list[UQOCours]]
 
     @classmethod
     async def from_config(cls, settings: Settings) -> Self:
         return cls(
             settings=settings,
-            uqo_cours_cache=UQOCache(list[UQOCours]),
+            uqo_cours_cache=AsyncCache(10),
         )
     
     async def aclose(self) -> None:
