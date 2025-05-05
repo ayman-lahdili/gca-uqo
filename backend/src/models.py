@@ -2,7 +2,7 @@ from typing import Optional, Any, Dict
 from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column, JSON, Relationship
-from src.schemas.enums import (
+from src.schemas.uqo import (
     Note,
     ActiviteMode,
     ActiviteType,

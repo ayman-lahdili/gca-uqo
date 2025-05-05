@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import Any, List
 
 from src.models import Cours, Activite, Seance
-from src.schemas.enums import ChangeType, ActiviteStatus
+from src.schemas.uqo import ChangeType, ActiviteStatus
 
 
 @dataclass

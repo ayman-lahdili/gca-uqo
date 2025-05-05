@@ -9,7 +9,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from src.dependencies.deps import SessionDep, StorageDep
 from src.schemas.responses import EtudiantFullResponse
 from src.models import Etudiant, Candidature, Campus, Campagne
-from src.schemas.enums import Note, CampagneStatus
+from src.schemas.uqo import Note, CampagneStatus
 
 router = APIRouter(tags=["candidature"])
 

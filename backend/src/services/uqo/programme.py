@@ -2,7 +2,7 @@ import json
 import requests
 import re
 from typing import Any, Dict, List, Literal
-from src.schemas.enums import Departement
+from src.schemas.uqo import Departement
 
 class UQOAPIException(Exception):
     """Custom exception for UQO API related errors."""
@@ -10,7 +10,7 @@ class UQOAPIException(Exception):
     pass
 
 
-class UQOProgramService:
+class UQOProgrammeService:
     def __init__(self, debug: bool = False) -> None:
         self.debug = debug
 

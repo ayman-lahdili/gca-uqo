@@ -2,7 +2,7 @@ from sqlmodel import SQLModel
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from datetime import datetime
-from src.schemas.enums import (
+from src.schemas.uqo import (
     ActiviteType,
     ActiviteMode,
     Campus,

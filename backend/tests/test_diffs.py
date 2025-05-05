@@ -6,7 +6,7 @@ from copy import deepcopy, copy
 from src.core.uqo import UQOHoraireService
 from src.core.diffs import CoursDiffer
 from src.models import Cours
-from src.schemas.enums import ChangeType, ActiviteType, Campus
+from src.schemas.uqo import ChangeType, ActiviteType, Campus
 
 
 class TestCoursDiffer(unittest.TestCase):

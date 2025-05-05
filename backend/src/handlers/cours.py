@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from src.dependencies.deps import SessionDep, StorageDep
 from src.models import Cours, Etudiant, Candidature
-from src.schemas.enums import Campus
+from src.schemas.uqo import Campus
 from src.schemas.responses import (
     CoursFullResponse,
 )

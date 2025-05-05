@@ -1,8 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List
-from src.schemas.enums import Departement
-from src.schemas.uqo import UQOCours
+from src.schemas.uqo import Departement, UQOCours
 
 class UQOCoursService:
     def __init__(self) -> None:
@@ -11,10 +10,6 @@ class UQOCoursService:
         self.headers = {}
         self.current_token = None
         self.fetch_new_token()
-
-    @classmethod
-    def get_service(cls) -> "UQOCoursService":
-        return cls()
 
     def fetch_new_token(self):
         try:

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from src.schemas.enums import ActiviteStatus
+from src.schemas.uqo import ActiviteStatus
 
 class CampagneCoursRequestItem(BaseModel):
     sigle: str
