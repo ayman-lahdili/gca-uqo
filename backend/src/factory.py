@@ -4,7 +4,7 @@ from sqlmodel import Session
 from typing import Self
 from src.config import Settings
 
-from src.services.uqo import UQOCoursService, UQOProgrammeService 
+from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
 
 @dataclass(frozen=True, slots=True)
 class ProcessContext:
@@ -71,4 +71,7 @@ class Factory:
     
     def create_uqo_programme_service(self) -> UQOProgrammeService:
         return UQOProgrammeService()
+
+    def create_uqo_horaire_service(self, trimestre: int) -> UQOHoraireService:
+        return UQOHoraireService(trimestre)
     

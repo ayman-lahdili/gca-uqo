@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from src.dependencies.db_session import SessionDep, HoraireDep
+from src.dependencies.context import Context
 from src.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from src.schemas.uqo import CoursStatus, ChangeType, CampagneConfig, ActiviteType, ActiviteStatus
 from src.schemas.responses import (
@@ -288,8 +289,9 @@ def update_campagne(
 def sync_campagne(
     trimestre: int,
     session: SessionDep,
-    uqo_service: HoraireDep,
+    context: Context,
 ) -> Any:
+    uqo_service = context.factory.create_uqo_horaire_service(trimestre=trimestre)
     campagne = session.exec(
         select(Campagne).where(Campagne.trimestre == trimestre)
     ).first()
