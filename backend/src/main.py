@@ -1,14 +1,26 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from src.handlers import campagnes, candidature, cours, uqo
-from src.core.config import settings
-
+from src.config import settings
+from src.dependencies.context import context_dependency
 
 def create_app():
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        await context_dependency.initialize(settings)
+        yield
+        await context_dependency.aclose()
+
+
     app = FastAPI(
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        lifespan=lifespan,
     )
     app.include_router(campagnes.router)
     app.include_router(candidature.router)

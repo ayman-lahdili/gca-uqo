@@ -2,7 +2,7 @@ import os
 
 from sqlmodel import Session, SQLModel, create_engine
 
-from src.core.config import settings
+from src.config import settings
 
 connect_args = {"check_same_thread": False}
 

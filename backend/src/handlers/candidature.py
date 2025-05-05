@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlmodel import select
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from src.dependencies.deps import SessionDep, StorageDep
+from src.dependencies.db_session import SessionDep, StorageDep
 from src.schemas.responses import EtudiantFullResponse
 from src.models import Etudiant, Candidature, Campus, Campagne
 from src.schemas.uqo import Note, CampagneStatus

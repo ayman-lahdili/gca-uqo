@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter
 
 from src.schemas.uqo import UQOCours, UQOProgramme, Departement, Cycle
-from src.services.uqo import UQOCoursService, UQOProgrammeService
+from src.dependencies.context import Context
 
 router = APIRouter(tags=["uqo"])
 
@@ -12,8 +12,9 @@ router = APIRouter(tags=["uqo"])
 async def get_courses(
     *,
     departement: Departement, 
+    context: Context,
 ) -> List[UQOCours]:
-    uqo_service = UQOCoursService()
+    uqo_service = context.factory.create_uqo_course_service()
     return uqo_service.get_courses(departement=departement)
 
 
@@ -21,7 +22,8 @@ async def get_courses(
 def get_programmes(
     *,
     departement: Departement, 
-    cycle: Cycle
+    cycle: Cycle,
+    context: Context,
 ):
-    uqo_service = UQOProgrammeService()
+    uqo_service = context.factory.create_uqo_programme_service()
     return uqo_service.get_programmes(departement=departement, cycle=cycle)
