@@ -1,23 +1,26 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List
 from src.schemas.uqo import Departement, UQOCours
+from src.cache import UQOCache
 
 class UQOCoursService:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        cours_cache: UQOCache[List[UQOCours]]
+    ) -> None:
         self.url = "https://etudier.uqo.ca/cours"
-        self.session = requests.Session()
         self.headers = {}
+        self._cours_cache = cours_cache
         self.current_token = None
-        self.fetch_new_token()
 
-    def fetch_new_token(self):
-        try:
-            # First get the page to obtain fresh token
-            response = self.session.get(self.url)
+    async def initialize(self):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(self.url)
 
             # Extract token from cookies
-            for cookie in self.session.cookies:
+            for cookie in client.cookies.jar:
                 if cookie.name.startswith(".AspNetCore.Antiforgery."):
                     if cookie.value:
                         self.headers = {"Cookie": cookie.name + "=" + cookie.value}
@@ -32,10 +35,16 @@ class UQOCoursService:
                 )
                 if token_input:
                     self.current_token = token_input["value"]
-        except Exception as e:
-            print(f"Error refreshing token: {e}")
 
-    def get_courses(self, departement: Departement):
+    async def get_courses(self, departement: Departement):
+        course = self._cours_cache.get(departement)
+        if course is not None:
+            return course
+
+        if not self.current_token:
+            # TODO fix to make concurrent and cache safe
+            await self.initialize()
+
         data = {
             "CritRech": "",
             "Module": departement,
@@ -43,9 +52,11 @@ class UQOCoursService:
             "TypeAff": "SigCrs",
             "__RequestVerificationToken": self.current_token,
         }
-        response = self.session.post(self.url, headers=self.headers, data=data)
-        return self.parse_courses_html(response.text, data)
-
+        async with httpx.AsyncClient() as client:
+            response = await client.post(self.url, headers=self.headers, data=data)
+            parsed = self.parse_courses_html(response.text, data)
+            self._cours_cache.store(departement, parsed)
+            return parsed
 
     @staticmethod
     def parse_courses_html(html_content: str, data: Dict[str, str]) -> List[UQOCours]:

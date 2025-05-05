@@ -15,7 +15,7 @@ async def get_courses(
     context: Context,
 ) -> List[UQOCours]:
     uqo_service = context.factory.create_uqo_course_service()
-    return uqo_service.get_courses(departement=departement)
+    return await uqo_service.get_courses(departement=departement)
 
 
 @router.get("/v1/uqo/programmes", response_model=List[UQOProgramme])
