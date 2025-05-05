@@ -19,14 +19,14 @@ async def get_courses(
 
 
 @router.get("/v1/uqo/programmes", response_model=List[UQOProgramme])
-def get_programmes(
+async def get_programmes(
     *,
     departement: Departement,
     cycle: Cycle,
     context: Context,
 ):
     uqo_service = context.factory.create_uqo_programme_service()
-    return uqo_service.get_programmes(departement=departement, cycle=cycle)
+    return await uqo_service.get_programmes(departement=departement, cycle=cycle)
 
 
 @router.get("/v1/uqo/{trimestre}/horaire")

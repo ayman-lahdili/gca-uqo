@@ -1,4 +1,10 @@
 
+dev:
+	fastapi dev .\src\main.py
+
+test:
+	pytest
+
 format:
 	ruff format
 

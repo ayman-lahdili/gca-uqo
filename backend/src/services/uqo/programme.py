@@ -1,8 +1,9 @@
 import json
-import requests
+import httpx
 import re
 from typing import Any, Dict, List, Literal
 from src.schemas.uqo import Departement, UQOProgramme
+from src.cache import AsyncCache
 
 
 class UQOAPIException(Exception):
@@ -12,67 +13,56 @@ class UQOAPIException(Exception):
 
 
 class UQOProgrammeService:
-    def __init__(self, debug: bool = False) -> None:
-        self.debug = debug
+    def __init__(self, *, programme_cache: AsyncCache[List[UQOProgramme]]) -> None:
+        self.url = "https://etudier.uqo.ca/programmes"
+        self._programme_cache = programme_cache
 
-    def get_programmes(
+    async def get_programmes(
         self, departement: Departement, cycle: Literal["1", "2", "3"]
     ) -> List[UQOProgramme]:
-        url = "https://etudier.uqo.ca/programmes"
+        # Convert department to string for use as cache key
+        programmes_key = str(departement) + str(cycle)
+
+        # Use the cache's get_or_create to handle concurrency and prevent dog-pile
+        return await self._programme_cache.get_or_create(
+            programmes_key, lambda: self._fetch_programmes(departement, cycle)
+        )
+
+    async def _fetch_programmes(
+        self, departement: Departement, cycle: Literal["1", "2", "3"]
+    ):
         pattern = re.compile(r"jsonLstRes\s*=\s*(\[.*)")
 
         try:
-            resp = requests.get(url, timeout=30)
-            resp.raise_for_status()
-            html_text = resp.text
-        except requests.exceptions.RequestException as e:
-            raise UQOAPIException(f"Failed to fetch {url}: {str(e)}")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(self.url, timeout=30)
+                resp.raise_for_status()
+                html_text = resp.text
+        except httpx.HTTPError as e:
+            raise UQOAPIException(f"Failed to fetch {self.url}: {str(e)}")
 
         match = pattern.search(html_text)
 
         if match:
             json_string = match.group(1)[:-2]
-            try:
-                program_data = json.loads(json_string)
-                result = [
-                    program
-                    for program in program_data
-                    if program["CdSectHtml"] == departement
-                    and program["CdCyc"] == cycle
-                ]
-                unique = dict((obj["CdPrgAdm"], obj) for obj in result).values()
+            program_data = json.loads(json_string)
+            result = [
+                program
+                for program in program_data
+                if program["CdSectHtml"] == departement and program["CdCyc"] == cycle
+            ]
+            unique = dict((obj["CdPrgAdm"], obj) for obj in result).values()
 
-                return [
-                    UQOProgramme(
-                        **{
-                            "sigle": c["CdPrgAdm"],
-                            "label": c["CdPrgAdm"] + " - " + c["LblPrg"],
-                        }
-                    )
-                    for c in unique
-                ]
-            except json.JSONDecodeError as e:
-                self.__debug_parse_error(json_string, e)
-                raise UQOAPIException(f"JSON parsing error: {str(e)}")
+            return [
+                UQOProgramme(
+                    **{
+                        "sigle": c["CdPrgAdm"],
+                        "label": c["CdPrgAdm"] + " - " + c["LblPrg"],
+                    }
+                )
+                for c in unique
+            ]
         else:
             raise UQOAPIException(
                 "Could not find the pattern 'jsonLstRes = [...]' in the response text."
             )
-
-    @staticmethod
-    def __debug_parse_error(json_string: str, error: json.JSONDecodeError):
-        with open("debug/debug_json_string.json", "w", encoding="utf-8") as f:
-            f.write(json_string)
-        print(f"Successfully saved full string.")
-
-        # Print context around the error position from the string
-        error_pos = error.pos
-        context_size = 60  # Show 60 chars before and after
-        start_index = max(0, error_pos - context_size)
-        end_index = min(len(json_string), error_pos + context_size)
-        print("\n--- Problematic string context (from extracted string) ---")
-        # Adding markers to pinpoint the exact error char
-        print(
-            f"...{json_string[start_index:error_pos]}<ERROR STARTS HERE>{json_string[error_pos:end_index]}..."
-        )
-        print("-" * (error_pos - start_index + len("...")) + "^ ERROR POS")

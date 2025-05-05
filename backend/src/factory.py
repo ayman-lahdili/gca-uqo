@@ -22,12 +22,14 @@ class ProcessContext:
 
     settings: Settings
     uqo_cours_cache: AsyncCache[list[UQOCours]]
+    uqo_programme_cache: AsyncCache[list[UQOProgramme]]
 
     @classmethod
     async def from_config(cls, settings: Settings) -> Self:
         return cls(
             settings=settings,
             uqo_cours_cache=AsyncCache(10),
+            uqo_programme_cache=AsyncCache(10),
         )
 
     async def aclose(self) -> None:
@@ -37,6 +39,7 @@ class ProcessContext:
         a different configuration.
         """
         await self.uqo_cours_cache.clear()
+        await self.uqo_programme_cache.clear()
 
 
 class Factory:
@@ -78,7 +81,9 @@ class Factory:
         )
 
     def create_uqo_programme_service(self) -> UQOProgrammeService:
-        return UQOProgrammeService()
+        return UQOProgrammeService(
+            programme_cache=self._context.uqo_programme_cache,
+        )
 
     def create_uqo_horaire_service(self, trimestre: int) -> UQOHoraireService:
         return UQOHoraireService(trimestre)
