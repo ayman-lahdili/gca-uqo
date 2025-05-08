@@ -22,9 +22,10 @@ router = APIRouter(tags=["candidature"])
     ],
 )
 async def create_candidature(
-    context: Context,
+    *,
     trimestre: int,
     form: CandidatureForm = Depends(),
+    context: Context,
 ):
     try:
         candidature_service = context.factory.create_candidature_service(trimestre)
@@ -45,6 +46,7 @@ async def create_candidature(
     ],
 )
 async def download_candidature_resume(
+    *,
     etudiant_id: int,
     trimestre: int,
     current_etudiant: CurrentEtudiant,
@@ -67,7 +69,7 @@ async def download_candidature_resume(
         Depends(get_current_campagne),
     ],
 )
-async def get_candidatures(trimestre: int, context: Context):
+async def get_candidatures(*, trimestre: int, context: Context):
     candidature_service = context.factory.create_candidature_service(trimestre)
     return await candidature_service.get_all_candidature()
 
@@ -80,10 +82,11 @@ async def get_candidatures(trimestre: int, context: Context):
     ],
 )
 async def update_student(
-    context: Context,
+    *,
     trimestre: int,
     current_etudiant: CurrentEtudiant,
     form: CandidatureForm = Depends(),
+    context: Context,
 ):
     try:
         candidature_service = context.factory.create_candidature_service(trimestre)
