@@ -116,3 +116,7 @@ class ApprovalResponse(BaseModel):
     entity: Dict
     change: ChangeInfo
     approved: bool
+
+
+class Message(BaseModel):
+    message: str

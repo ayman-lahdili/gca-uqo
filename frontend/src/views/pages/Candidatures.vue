@@ -97,7 +97,7 @@ export default {
         async deleteCandidat() {
             this.loading = true;
             try {
-                await CandidatService.deleteCandidature(this.candidat.id);
+                await CandidatService.deleteCandidature(this.candidat.id, this.selectedTrimestre);
                 this.toast.add({ severity: 'success', summary: 'Succès', detail: 'Candidat supprimé', life: 3000 });
                 await this.fetchCandidatures();
             } catch (error) {

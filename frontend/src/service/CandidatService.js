@@ -2,11 +2,11 @@ import apiClient from '@/service/api'; // Adjust path if needed
 
 export const CandidatService = {
     async getCandidatures(trimestre) {
-        const response = await apiClient.get(`/v1/candidature`, { params: { trimestre } });
+        const response = await apiClient.get(`/v1/${trimestre}/candidature`, { params: { trimestre } });
         return response.data;
     },
 
-    async createCandidature(studentData, resumeFile) {
+    async createCandidature(trimestre, studentData, resumeFile) {
         const formData = new FormData();
 
         // Add all student data fields to the form
@@ -29,7 +29,7 @@ export const CandidatService = {
             formData.append('resume', resumeFile);
         }
 
-        const response = await apiClient.post(`/v1/candidature`, formData, {
+        const response = await apiClient.post(`/v1/${trimestre}/candidature`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -37,7 +37,7 @@ export const CandidatService = {
         return response.data;
     },
 
-    async updateCandidature(studentId, studentData, resumeFile = null) {
+    async updateCandidature(trimestre, studentId, studentData, resumeFile = null) {
         // Create a FormData object for the update
         const formData = new FormData();
 
@@ -62,7 +62,7 @@ export const CandidatService = {
             formData.append('resume', resumeFile);
         }
 
-        const response = await apiClient.put(`/v1/candidature/${studentId}`, formData, {
+        const response = await apiClient.put(`/v1/${trimestre}/candidature/${studentId}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -70,14 +70,14 @@ export const CandidatService = {
         return response.data;
     },
 
-    async deleteCandidature(studentId) {
-        const response = await apiClient.delete(`/v1/candidature/${studentId}`);
+    async deleteCandidature(studentId, trimestre) {
+        const response = await apiClient.delete(`/v1/${trimestre}/candidature/${studentId}`);
         return response.data;
     },
 
     async downloadResume(studentId, trimestre) {
         const response = await apiClient
-            .get(`/v1/candidature/${trimestre}/${studentId}/resume`, {
+            .get(`/v1/${trimestre}/candidature/${studentId}/resume`, {
                 responseType: 'blob' // Important for file downloads
             })
             .catch((error) => {

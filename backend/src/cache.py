@@ -30,7 +30,9 @@ class AsyncCache(Generic[T]):
         self._locks: Dict[str, asyncio.Lock] = {}
         self._global_lock = asyncio.Lock()
 
-    async def get_or_create(self, key: str, creator_func: Callable[..., Awaitable]) -> T:
+    async def get_or_create(
+        self, key: str, creator_func: Callable[..., Awaitable]
+    ) -> T:
         """Get a value from the cache or create it if it doesn't exist.
 
         This method ensures that only one creator_func runs at a time for any given key,
@@ -123,7 +125,7 @@ class AsyncCache(Generic[T]):
             if key in self._locks and not self._locks[key].locked():
                 # Keep the lock if the key is in the cache to avoid recreation for active keys
                 pass
-    
+
     async def _cleanup_lock_if_unused(self, key: str) -> None:
         async with self._global_lock:
             if key in self._locks and not self._locks[key].locked():

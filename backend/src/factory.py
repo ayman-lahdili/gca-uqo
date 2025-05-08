@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from typing import Self
 from src.config import Settings
 
 from src.schemas.uqo import UQOCours, UQOProgramme
 from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
+from src.services import CampagneService, EtudiantService, CandidatureService
+from src.providers import StorageProvider, LocalStorageProvider
 from src.cache import AsyncCache
 
 
@@ -23,6 +26,7 @@ class ProcessContext:
     settings: Settings
     uqo_cours_cache: AsyncCache[list[UQOCours]]
     uqo_programme_cache: AsyncCache[list[UQOProgramme]]
+    storage_provider: StorageProvider
 
     @classmethod
     async def from_config(cls, settings: Settings) -> Self:
@@ -30,6 +34,7 @@ class ProcessContext:
             settings=settings,
             uqo_cours_cache=AsyncCache(10),
             uqo_programme_cache=AsyncCache(10),
+            storage_provider=LocalStorageProvider(settings.STORAGE_DIRECTORY),
         )
 
     async def aclose(self) -> None:
@@ -87,3 +92,14 @@ class Factory:
 
     def create_uqo_horaire_service(self, trimestre: int) -> UQOHoraireService:
         return UQOHoraireService(trimestre)
+
+    def create_campagne_service(self) -> CampagneService:
+        return CampagneService(session=self.session)
+
+    def create_etudiant_service(self, trimestre: int) -> EtudiantService:
+        return EtudiantService(trimestre, session=self.session)
+
+    def create_candidature_service(self, trimestre: int) -> CandidatureService:
+        return CandidatureService(
+            trimestre, session=self.session, storage=self._context.storage_provider
+        )

@@ -439,6 +439,7 @@ export default {
             try {
                 if (this.candidatAction === 'NEW') {
                     await CandidatService.createCandidature(
+                        this.trimestre,
                         {
                             code_permanent: candidat.code_permanent,
                             email: candidat.email,
@@ -458,6 +459,7 @@ export default {
                     );
                 } else if (this.candidatAction === 'EDIT') {
                     await CandidatService.updateCandidature(
+                        this.trimestre,
                         candidat.id,
                         {
                             code_permanent: candidat.code_permanent,

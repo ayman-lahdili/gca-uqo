@@ -7,7 +7,7 @@ class WebsiteUser(HttpUser):
     @task
     def get_uqo_courses(self):
         self.client.get("/v1/uqo/cours?departement=DII")
-    
+
     @task
     def get_uqo_programmes(self):
         for cycle in range(1, 4):

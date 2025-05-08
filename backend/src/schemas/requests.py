@@ -1,6 +1,9 @@
-from pydantic import BaseModel
+import json
+from pydantic import BaseModel, ValidationError, TypeAdapter
 from typing import List, Dict, Any
-from src.schemas.uqo import ActiviteStatus
+from fastapi import HTTPException, Form, UploadFile, File
+from dataclasses import dataclass, field
+from src.schemas.uqo import ActiviteStatus, Note, Campus
 
 
 class CampagneCoursRequestItem(BaseModel):
@@ -29,3 +32,41 @@ class ActiviteUpdateRequest(BaseModel):
 
 class SeanceUpdateRequest(BaseModel):
     activite: List[ActiviteUpdateRequest]
+
+
+class CandidatureCoursItemRequest(BaseModel):
+    sigle: str
+    titre: str = ""
+    note: Note = Note.non_specifie
+
+
+@dataclass
+class CandidatureForm:
+    code_permanent: str = Form()
+    nom: str = Form()
+    prenom: str = Form()
+    cycle: int = Form()
+    campus: Campus = Form()
+    programme: str = Form()
+    email: str = Form()
+    courses_json: str = Form(
+        "[]", description="JSON string representation of the courses list"
+    )
+    resume: UploadFile = File(None, description="Student's resume file (e.g., PDF)")
+    courses: List[CandidatureCoursItemRequest] = field(init=False)
+
+    def __post_init__(self):
+        try:
+            self.courses = TypeAdapter(List[CandidatureCoursItemRequest]).validate_json(
+                self.courses_json
+            )
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid JSON format for courses: {e}",
+            )
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=400,
+                detail="Courses field is not valid JSON.",
+            )

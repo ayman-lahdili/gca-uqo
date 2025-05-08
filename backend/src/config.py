@@ -51,5 +51,7 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER: EmailStr = "test@example.com"
     FIRST_SUPERUSER_PASSWORD: str = "password123"
 
+    STORAGE_DIRECTORY: str = "./uploaded_resumes"
+
 
 settings = Settings()  # type: ignore

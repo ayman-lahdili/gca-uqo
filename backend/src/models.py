@@ -138,7 +138,7 @@ class Etudiant(SQLModel, table=True):
 
     @property
     def get_file_name(self):
-        return f"{self.trimestre}_{self.nom}_{self.prenom}_{self.id}.pdf"
+        return f"{self.trimestre}_{self.id}.pdf"
 
 
 class Candidature(SQLModel, table=True):
