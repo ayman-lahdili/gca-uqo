@@ -12,6 +12,7 @@ wheels/
 
 # Database
 /database.db
+*.db
 uploaded_resumes/
 reports/
 

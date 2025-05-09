@@ -79,8 +79,8 @@ class CoursDiffer:
             elif act.change["change_type"] != ChangeType.ADDED:
                 act.change["change_type"] = ChangeType.UNCHANGED
 
-        print("new_acts", new_acts)
-        print("old_acts", old_acts)
+        # print("new_acts", new_acts)
+        # print("old_acts", old_acts)
 
         for key, act in new_acts.items():
             if key not in old_acts:

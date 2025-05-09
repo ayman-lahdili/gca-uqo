@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
-from src.dependencies.db_session import SessionDep, HoraireDep
+from src.dependencies.session import SessionDep, HoraireDep
 from src.dependencies.context import Context
 from src.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
 from src.schemas.uqo import (

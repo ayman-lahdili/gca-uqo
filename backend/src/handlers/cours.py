@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import select
 from pydantic import BaseModel
 
-from src.dependencies.db_session import SessionDep, StorageDep
+from src.dependencies.session import SessionDep, StorageDep
 from src.models import Cours, Etudiant, Candidature
 from src.schemas.uqo import Campus
 from src.schemas.responses import (

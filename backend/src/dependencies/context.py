@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from src.factory import Factory, ProcessContext
 from src.config import Settings
-from src.dependencies.db_session import SessionDep
+from src.dependencies.session import db_session_dependency
 
 
 @dataclass(slots=True)
@@ -47,7 +47,10 @@ class ContextDependency:
         self._process_context: ProcessContext | None = None
 
     async def __call__(
-        self, *, request: Request, session: SessionDep
+        self,
+        *,
+        request: Request,
+        session: Annotated[Session, Depends(db_session_dependency)],
     ) -> RequestContext:
         if not self._settings or not self._process_context:
             raise RuntimeError("ContextDependency not initialized")
@@ -72,7 +75,7 @@ class ContextDependency:
         if self._process_context:
             await self._process_context.aclose()
         self._settings = settings
-        self._process_context = await ProcessContext.from_config(settings)
+        self._process_context = ProcessContext.from_config(settings)
 
 
 context_dependency = ContextDependency()

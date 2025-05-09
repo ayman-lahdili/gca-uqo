@@ -61,10 +61,11 @@ def ensure_etudiant_does_not_exist(
     *,
     trimestre: Annotated[int, Path()],
     context: Context,
-    etudiant_id: Annotated[int | None, Path()],
-    code_permanent: Annotated[str | None, Form()],
-    email: Annotated[str | None, Form()],
+    code_permanent: Annotated[str | None, Form()] = None,
+    email: Annotated[str | None, Form()] = None,
+    etudiant_id: Annotated[int | None, Path()] = None,
 ) -> None:
+    print("asdasd", etudiant_id)
     _find_etudiant_or_raise(
         etudiant_id=etudiant_id,
         trimestre=trimestre,

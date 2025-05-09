@@ -1,6 +1,6 @@
 from dataclasses import dataclass
+from sqlalchemy import Engine
 from sqlmodel import Session
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from typing import Self
 from src.config import Settings
@@ -29,7 +29,7 @@ class ProcessContext:
     storage_provider: StorageProvider
 
     @classmethod
-    async def from_config(cls, settings: Settings) -> Self:
+    def from_config(cls, settings: Settings) -> Self:
         return cls(
             settings=settings,
             uqo_cours_cache=AsyncCache(10),
@@ -60,6 +60,12 @@ class Factory:
     session
         Database session.
     """
+
+    @classmethod
+    def create(cls, settings: Settings, engine: Engine) -> Self:
+        session = Session(engine)
+        context = ProcessContext.from_config(settings)
+        return cls(context, session)
 
     def __init__(
         self,

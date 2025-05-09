@@ -21,7 +21,7 @@ def parse_cors(v: Any) -> list[str] | str:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         # Use top level .env file (one level above ./backend/)
-        env_file="../.env",
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -46,12 +46,20 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "GCA-UQO"
 
     SQLLITE_FILE_NAME: str = "database.db"
-    SQLALCHEMY_DATABASE_URI: str = f"sqlite:///{SQLLITE_FILE_NAME}"
+
+    @computed_field
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        return f"sqlite:///{self.SQLLITE_FILE_NAME}"
 
     FIRST_SUPERUSER: EmailStr = "test@example.com"
     FIRST_SUPERUSER_PASSWORD: str = "password123"
 
     STORAGE_DIRECTORY: str = "./uploaded_resumes"
 
+    def __call__(self):
+        return self
 
-settings = Settings()  # type: ignore
+
+def get_settings() -> Settings:
+    return Settings()
