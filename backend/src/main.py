@@ -16,8 +16,8 @@ def create_app(settings: Settings):
         await db_session_dependency.initialize(settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False})
         await context_dependency.initialize(settings)
         yield
-        await db_session_dependency.aclose()
         await context_dependency.aclose()
+        await db_session_dependency.aclose()
 
     app = FastAPI(
         title=settings.PROJECT_NAME,
