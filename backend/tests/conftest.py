@@ -7,7 +7,7 @@ from sqlmodel.pool import StaticPool
 
 from src.main import create_app
 from src.factory import Factory
-from src.scripts.initial_data import init
+from src.core.db import init_db
 from src.config import Settings, get_settings
 
 
@@ -31,7 +31,7 @@ def engine(test_settings: Settings) -> Engine:
 
 @pytest.fixture(scope="function")
 def empty_database(test_settings: Settings, engine: Engine) -> None:
-    init(test_settings, engine)
+    init_db(test_settings, engine)
 
 
 @pytest.fixture(scope="function")

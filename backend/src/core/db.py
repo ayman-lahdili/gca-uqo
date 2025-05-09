@@ -12,5 +12,5 @@ def init_db(settings: Settings, engine: Engine):
     if os.path.exists(settings.SQLLITE_FILE_NAME):
         os.remove(settings.SQLLITE_FILE_NAME)
         print(f"Database {settings.SQLLITE_FILE_NAME} deleted.")
-    print("asad", settings.SQLLITE_FILE_NAME)
+    print("Creating database", settings.SQLLITE_FILE_NAME)
     SQLModel.metadata.create_all(engine)
