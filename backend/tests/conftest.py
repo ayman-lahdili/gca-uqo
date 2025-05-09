@@ -1,4 +1,5 @@
 import pytest
+from collections.abc import Generator
 
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
@@ -7,17 +8,20 @@ from sqlmodel.pool import StaticPool
 
 from src.main import create_app
 from src.factory import Factory
-from src.core.db import init_db
+from src.scripts.initial_data import init_db
 from src.config import Settings, get_settings
 
 
 @pytest.fixture(scope="function")
 def test_settings(
     tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
-) -> Settings:
+) -> Generator[Settings, None, None]:
     db_path = tmp_path_factory.mktemp("tmp_test_databases") / "test_database.db"
     monkeypatch.setenv("SQLLITE_FILE_NAME", str(db_path))
-    return get_settings()
+    
+    settings = get_settings()
+    
+    yield settings
 
 
 @pytest.fixture(scope="function")

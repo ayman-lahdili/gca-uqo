@@ -1,13 +1,22 @@
+import os
 import logging
 
-from sqlmodel import create_engine
+from sqlalchemy import Engine
+from sqlmodel import SQLModel, create_engine
 
-from src.config import get_settings
+from src.config import Settings, get_settings
 from src.models import *
-from src.core.db import init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def init_db(settings: Settings, engine: Engine):
+    if os.path.exists(settings.SQLLITE_FILE_NAME):
+        os.remove(settings.SQLLITE_FILE_NAME)
+        print(f"Database {settings.SQLLITE_FILE_NAME} deleted.")
+    print("Creating database", settings.SQLLITE_FILE_NAME)
+    SQLModel.metadata.create_all(engine)
 
 
 def main() -> None:

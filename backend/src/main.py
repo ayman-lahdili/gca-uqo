@@ -13,9 +13,10 @@ from src.dependencies.session import db_session_dependency
 def create_app(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        await db_session_dependency.initialize(settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False})
         await context_dependency.initialize(settings)
-        await db_session_dependency.initialize(settings.SQLALCHEMY_DATABASE_URI)
         yield
+        await db_session_dependency.aclose()
         await context_dependency.aclose()
 
     app = FastAPI(
@@ -23,6 +24,7 @@ def create_app(settings: Settings):
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
         lifespan=lifespan,
     )
+
     app.include_router(campagnes.router)
     app.include_router(candidature.router)
     app.include_router(cours.router)
@@ -38,6 +40,5 @@ def create_app(settings: Settings):
         )
 
     return app
-
 
 app = create_app(get_settings())
