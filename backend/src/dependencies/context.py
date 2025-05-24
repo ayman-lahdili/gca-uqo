@@ -37,12 +37,7 @@ class ContextDependency:
     process-global `~factory.ProcessContext` and reused with each
     request.
     """
-
-    instance_count = 0
-
     def __init__(self) -> None:
-        ContextDependency.instance_count += 1
-        print("ContextDependency.instance_count", ContextDependency.instance_count)
         self._settings: Settings | None = None
         self._process_context: ProcessContext | None = None
 

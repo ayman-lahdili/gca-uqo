@@ -9,7 +9,7 @@ from sqlmodel.pool import StaticPool
 from src.main import create_app
 from src.factory import Factory
 from src.scripts.initial_data import init_db
-from src.config import Settings, get_settings
+from src.config import Settings, settings
 
 
 @pytest.fixture(scope="function")
@@ -18,10 +18,8 @@ def test_settings(
 ) -> Generator[Settings, None, None]:
     db_path = tmp_path_factory.mktemp("tmp_test_databases") / "test_database.db"
     monkeypatch.setenv("SQLLITE_FILE_NAME", str(db_path))
-    
-    settings = get_settings()
-    
-    yield settings
+        
+    yield settings()
 
 
 @pytest.fixture(scope="function")

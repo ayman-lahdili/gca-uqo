@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from src.handlers import campagnes, candidature, cours, uqo
-from src.config import Settings, get_settings
+from src.config import Settings, settings
 from src.dependencies.context import context_dependency
 from src.dependencies.session import db_session_dependency
 
@@ -13,11 +13,11 @@ from src.dependencies.session import db_session_dependency
 def create_app(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-        await db_session_dependency.initialize(settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False})
+        db_session_dependency.initialize(settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False})
         await context_dependency.initialize(settings)
         yield
         await context_dependency.aclose()
-        await db_session_dependency.aclose()
+        db_session_dependency.aclose()
 
     app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -41,4 +41,4 @@ def create_app(settings: Settings):
 
     return app
 
-app = create_app(get_settings())
+app = create_app(settings)

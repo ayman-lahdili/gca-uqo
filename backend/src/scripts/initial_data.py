@@ -4,7 +4,7 @@ import logging
 from sqlalchemy import Engine
 from sqlmodel import SQLModel, create_engine
 
-from src.config import Settings, get_settings
+from src.config import Settings, settings
 from src.models import *
 
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +21,6 @@ def init_db(settings: Settings, engine: Engine):
 
 def main() -> None:
     logger.info("Creating initial data")
-    settings = get_settings()
     engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
     init_db(settings, engine)
     logger.info("Initial data created")

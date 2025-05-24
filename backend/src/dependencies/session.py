@@ -23,13 +23,13 @@ class DatabaseSessionDependency:
         with Session(self._engine) as session:
             yield session
 
-    async def aclose(self) -> None:
+    def aclose(self) -> None:
         """SHut down the database engine."""
         if self._engine:
             self._engine.dispose()
             self._engine = None
 
-    async def initialize(
+    def initialize(
         self,
         url: str,
         password: str | None = None,

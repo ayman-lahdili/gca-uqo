@@ -57,9 +57,11 @@ class Settings(BaseSettings):
 
     STORAGE_DIRECTORY: str = "./uploaded_resumes"
 
-    def __call__(self):
-        return self
+    @classmethod
+    def __call__(cls):
+        return cls()
 
+settings = Settings()
 
-def get_settings() -> Settings:
-    return Settings()
+# def get_settings() -> Settings:
+#     return Settings()
