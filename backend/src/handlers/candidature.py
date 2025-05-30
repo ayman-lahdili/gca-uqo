@@ -14,7 +14,7 @@ router = APIRouter(tags=["candidature"])
 
 
 @router.post(
-    "/v1/{trimestre}/candidature/",
+    "/v1/{trimestre}/candidature",
     response_model=EtudiantFullResponse,
     dependencies=[
         Depends(get_current_campagne),
@@ -63,7 +63,7 @@ async def download_candidature_resume(
 
 
 @router.get(
-    "/v1/{trimestre}/candidature/",
+    "/v1/{trimestre}/candidature",
     response_model=list[EtudiantFullResponse],
     dependencies=[
         Depends(get_current_campagne),

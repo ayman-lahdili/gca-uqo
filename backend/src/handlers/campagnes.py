@@ -34,7 +34,7 @@ from src.core.diffs import CoursDiffer
 router = APIRouter(tags=["campagne"])
 
 
-@router.post("/v1/campagne/", response_model=CampagneFullResponse)
+@router.post("/v1/campagne", response_model=CampagneFullResponse)
 def create_campagne(
     payload: CampagneCreateRequest,
     session: SessionDep,
@@ -92,7 +92,7 @@ def create_campagne(
     return campagne
 
 
-@router.get("/v1/campagne/", response_model=List[CampagneResponse])
+@router.get("/v1/campagne", response_model=List[CampagneResponse])
 def get_campagnes(session: SessionDep) -> Any:
     campagnes = session.exec(select(Campagne)).all()
 

@@ -28,8 +28,8 @@ class UQOHoraireService:
         }
 
         results = requests.get(self.url, params=params)
-        with open("tests/files/full_response.json", "r", encoding="utf-8") as f:
-            return json.loads(f.read())
+        # with open("tests/files/full_response.json", "r", encoding="utf-8") as f:
+        #     return json.loads(f.read())
 
         return results.json()
 
