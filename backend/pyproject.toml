@@ -15,6 +15,7 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "httpx>=0.28.1",
     "cachetools>=5.5.2",
+    "alembic>=1.16.1",
 ]
 
 [tool.pytest.ini_options]
