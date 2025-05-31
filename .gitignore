@@ -1,2 +1,8 @@
 .vscode
 node_modules/
+
+data/database/*.db
+data/database/*.db-*
+data/files/pdfs/*
+!data/database/.gitkeep
+!data/files/pdfs/.gitkeep

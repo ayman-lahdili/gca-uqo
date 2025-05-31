@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import secrets
 from typing import Annotated, Any, Literal
 
@@ -45,23 +47,22 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "GCA-UQO"
 
-    SQLLITE_FILE_NAME: str = "data/database.db"
+    SQLLITE_FILE_NAME: str = "../data/database/app.db"
 
     @computed_field
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
+        db_path = Path(self.SQLLITE_FILE_NAME)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{self.SQLLITE_FILE_NAME}"
 
     FIRST_SUPERUSER: EmailStr = "test@example.com"
     FIRST_SUPERUSER_PASSWORD: str = "password123"
 
-    STORAGE_DIRECTORY: str = "./uploaded_resumes"
+    STORAGE_DIRECTORY: str = "../data/files/resumes"
 
     @classmethod
     def __call__(cls):
         return cls()
 
 settings = Settings()
-
-# def get_settings() -> Settings:
-#     return Settings()
