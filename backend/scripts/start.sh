@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "Ensuring data directory exists..."
+mkdir -p /app/data
+
 echo "Running Alembic migrations..."
 alembic upgrade head
 
