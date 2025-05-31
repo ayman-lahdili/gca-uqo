@@ -52,8 +52,8 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        db_path = Path(self.SQLLITE_FILE_NAME)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+        # db_path = Path(self.SQLLITE_FILE_NAME)
+        # db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{self.SQLLITE_FILE_NAME}"
 
     FIRST_SUPERUSER: EmailStr = "test@example.com"

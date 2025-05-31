@@ -17,7 +17,7 @@ def _find_etudiant_or_raise(
     etudiant_service = context.factory.create_etudiant_service(trimestre)
     if etudiant_id is None:
         assert code_permanent and email, (
-            "Code permanent and email cannot be None if no etudiant is provided"
+            "Code permanent and email cannot be None if no etudiant_id is provided"
         )
         etudiant = etudiant_service.get_etudiant(
             code_permanent=code_permanent, email=email
@@ -78,4 +78,3 @@ def ensure_etudiant_does_not_exist(
 
 # Annotated types for cleaner injection
 CurrentEtudiant = Annotated[Etudiant, Depends(get_existing_etudiant)]
-EtudiantDoesNotExist = Annotated[None, Depends(ensure_etudiant_does_not_exist)]

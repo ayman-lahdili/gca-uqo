@@ -1,9 +1,10 @@
+import os
 import pytest
 from collections.abc import Generator
 
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
-from sqlmodel import create_engine
+from sqlmodel import SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from src.main import create_app
@@ -37,7 +38,7 @@ def empty_database(test_settings: Settings, engine: Engine) -> None:
 
 
 @pytest.fixture(scope="function")
-def factory(empty_database: None, test_settings: Settings, engine: Engine) -> Factory:
+def factory(test_settings: Settings, engine: Engine, empty_database: None) -> Factory:
     return Factory.create(test_settings, engine)
 
 

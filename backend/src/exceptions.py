@@ -7,6 +7,17 @@ class CampagneNotFoundError(Exception):
     ) -> None:
         super().__init__(f"Campagne introuvable pour le trimestre {trimestre}")
 
+class CampagneTooAhead(Exception):
+    """Campagne created too ahead of time"""
+
+class ActiviteNotFoundError(Exception):
+    """Activite not found"""
+
+class CandidatureExistsError(Exception):
+    """The candidature already exists"""
+
+class NoStudentsFoundError(Exception):
+    """Aucun étudiant n'a été trouvé"""
 
 class StorageError(Exception):
     """Base exception for all storage-related errors."""

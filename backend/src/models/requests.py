@@ -3,7 +3,7 @@ from pydantic import BaseModel, ValidationError, TypeAdapter
 from typing import List, Dict, Any
 from fastapi import HTTPException, Form, UploadFile, File
 from dataclasses import dataclass, field
-from src.models.uqo import ActiviteStatus, Note, Campus
+from src.models.uqo import ActiviteStatus, Note, Campus, CampagneStatus
 
 
 class CampagneCoursRequestItem(BaseModel):
@@ -19,7 +19,7 @@ class CampagneCreateRequest(BaseModel):
 
 class CampagneUpdateRequest(BaseModel):
     config: Dict[str, Any] | None = None
-    status: str | None = None
+    status: CampagneStatus | None = None
     cours: List[CampagneCoursRequestItem] | None = None
 
 
@@ -38,6 +38,16 @@ class CandidatureCoursItemRequest(BaseModel):
     sigle: str
     titre: str = ""
     note: Note = Note.non_specifie
+
+
+class CandidaturePayload(BaseModel):
+    code_permanent: str
+    nom: str
+    prenom: str
+    cycle: int
+    campus: str = ""
+    programme: str = ""
+    email: str = ""
 
 
 @dataclass

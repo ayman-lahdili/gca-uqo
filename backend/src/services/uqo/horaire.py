@@ -3,15 +3,20 @@ from datetime import datetime
 import json
 from typing import Dict, List, Any
 
-from src.schemas import Cours, Seance, Activite
-from src.models.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine
+from sqlmodel import Session
+
+from src.schemas import Cours, Seance, Activite, Campagne
+from src.models.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine, CoursStatus
+from src.services.uqo.diffs import CoursDiffer
 
 
 class UQOHoraireService:
-    def __init__(self, trimestre) -> None:
+    def __init__(self, trimestre, *, diff_checker_cls: type[CoursDiffer] = CoursDiffer, session: Session) -> None:
         self.url = "https://etudier.uqo.ca/activites/recherche-horaire-resultats-ajax"
         self.trimestre = trimestre
         self.horaire = self.get_horaire(self.trimestre)
+        self.diff_checker_cls = diff_checker_cls
+        self._session = session
 
     def get_horaire(self, trimestre: int):
         params = {
@@ -84,6 +89,35 @@ class UQOHoraireService:
                 for seance in cours["LstActCrs"]
             ],
         )
+    
+    async def sync_courses(self, campagne: Campagne) -> Campagne:
+        for old_course in campagne.cours:
+            await self.sync_course(old_course)
+
+        self._session.commit()
+        self._session.refresh(campagne, attribute_names=["cours"])
+
+        return campagne
+
+    async def sync_course(self, old_cours: Cours) -> None:
+        new_cours = self.get_course(old_cours.sigle)
+
+        if not new_cours:
+            old_cours.status = CoursStatus.non_confirmee
+            return
+        else:
+            old_cours.status = CoursStatus.confirmee
+        
+        differ = self.diff_checker_cls(old_cours, new_cours)
+
+        old_cours = differ.compare()
+
+        for seance in old_cours.seance:
+            for act in seance.activite:
+                self._session.add(act)
+
+        self._session.add(old_cours)
+        
 
 
 def _parse_campus(unparsed: str) -> List[Campus]:

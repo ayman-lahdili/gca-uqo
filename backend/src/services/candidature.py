@@ -1,10 +1,12 @@
 from sqlmodel import Session, select
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
-from src.schemas import Etudiant, Candidature
-from src.models.requests import CandidatureForm
+from src.schemas import Etudiant, Candidature, Cours
+from src.models.requests import CandidatureForm, CandidaturePayload
+from src.models.uqo import Campus
+
 from src.file import StorageProvider
-from src.exceptions import StorageError, FileDeleteError, ResumeNotFoundError
+from src.exceptions import StorageError, FileDeleteError, ResumeNotFoundError, CandidatureExistsError, NoStudentsFoundError
 
 
 class CandidatureService:
@@ -129,6 +131,13 @@ class CandidatureService:
             return self._storage.read_file(etudiant.get_file_name)
         except FileNotFoundError:
             raise ResumeNotFoundError()
+        
+    async def get_resumes_for_course(self, cours: Cours) -> StreamingResponse:
+        filenames = [c.etudiant.get_file_name for c in cours.candidature]
+        if not filenames:
+            raise NoStudentsFoundError()
+        
+        return self._storage.zip_files(f"resumes_{self._trimestre}", filenames)
 
     async def get_all_candidature(self) -> list[Etudiant]:
         return list(
@@ -145,3 +154,55 @@ class CandidatureService:
 
         self._session.delete(etudiant)
         self._session.commit()
+
+    async def add_candidature_to_cours(self, *, cours: Cours, payload: CandidaturePayload):
+        student = self._session.exec(
+            select(Etudiant).where(
+                    (Etudiant.code_permanent == payload.code_permanent)
+                    & (Etudiant.trimestre == self._trimestre)
+                )
+        ).first()
+
+        if not student:
+            # Create a new student if not found
+            student = Etudiant(
+                code_permanent=payload.code_permanent,
+                email=payload.email,
+                nom=payload.nom,
+                prenom=payload.prenom,
+                cycle=payload.cycle,
+                campus=Campus(payload.campus) if payload.campus else Campus.non_specifie,
+                programme=payload.programme,
+                trimestre=self._trimestre,
+            )
+            self._session.add(student)
+            self._session.commit()
+            self._session.refresh(student)
+
+        assert student.id is not None, "Student ID should not be None after commit."
+
+        candidature = self._session.exec(
+            select(Candidature).where(
+                (Candidature.sigle == cours.sigle)
+                & (Candidature.trimestre == cours.trimestre)
+                & (Candidature.id_etudiant == student.id)
+            )
+        ).first()
+
+        if candidature:
+            raise CandidatureExistsError()
+            raise HTTPException(
+                status_code=404, detail="Une candidature existe déjà pour ce candidat"
+            )
+
+        candidature = Candidature(
+            id_etudiant=student.id,
+            sigle=cours.sigle,
+            trimestre=cours.trimestre,
+        )
+
+        self._session.add(candidature)
+        self._session.commit()
+        self._session.refresh(cours, attribute_names=["candidature"])
+
+        return cours

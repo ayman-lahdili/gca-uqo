@@ -83,7 +83,7 @@ class LocalStorageProvider(StorageProvider):
                     continue
 
                 resume_path = found_files[0]
-                zip_file.write(resume_path, arcname=resume_path)
+                zip_file.write(resume_path, arcname=resume_path.name)
         zip_buffer.seek(0)
 
         return StreamingResponse(
