@@ -5,7 +5,7 @@ from fastapi import Depends
 from sqlalchemy import Engine
 from sqlmodel import Session, create_engine
 
-from src.providers.file import StorageProvider, LocalStorageProvider
+from src.file import StorageProvider, LocalStorageProvider
 
 
 async def get_storage_provider() -> StorageProvider:
@@ -23,7 +23,7 @@ class DatabaseSessionDependency:
         with Session(self._engine) as session:
             yield session
 
-    def aclose(self) -> None:
+    def close(self) -> None:
         """SHut down the database engine."""
         if self._engine:
             self._engine.dispose()

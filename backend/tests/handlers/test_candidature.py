@@ -1,6 +1,6 @@
 from src.factory import Factory
-from src.models import Etudiant, Campagne
-from src.schemas.uqo import Campus
+from src.schemas import Etudiant, Campagne
+from src.models.uqo import Campus
 from fastapi.testclient import TestClient
 
 

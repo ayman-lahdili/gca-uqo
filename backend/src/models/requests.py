@@ -3,7 +3,7 @@ from pydantic import BaseModel, ValidationError, TypeAdapter
 from typing import List, Dict, Any
 from fastapi import HTTPException, Form, UploadFile, File
 from dataclasses import dataclass, field
-from src.schemas.uqo import ActiviteStatus, Note, Campus
+from src.models.uqo import ActiviteStatus, Note, Campus
 
 
 class CampagneCoursRequestItem(BaseModel):

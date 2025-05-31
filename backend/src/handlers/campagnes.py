@@ -6,15 +6,15 @@ from sqlmodel import select
 
 from src.dependencies.session import SessionDep
 from src.dependencies.context import Context
-from src.models import Campagne, Cours, Seance, Activite, Etudiant, Candidature
-from src.schemas.uqo import (
+from src.schemas import Campagne, Cours, Seance, Activite, Etudiant, Candidature
+from src.models.uqo import (
     CoursStatus,
     ChangeType,
     CampagneConfig,
     ActiviteType,
     ActiviteStatus,
 )
-from src.schemas.responses import (
+from src.models.responses import (
     CampagneFullResponse,
     CampagneResponse,
     CampagneStatus,
@@ -23,7 +23,7 @@ from src.schemas.responses import (
     ChangeInfo,
     ApprovalResponse,
 )
-from src.schemas.requests import (
+from src.models.requests import (
     CampagneCreateRequest,
     CampagneUpdateRequest,
     SeanceUpdateRequest,

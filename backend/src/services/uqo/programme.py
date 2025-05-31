@@ -2,7 +2,7 @@ import json
 import httpx
 import re
 from typing import Any, Dict, List, Literal
-from src.schemas.uqo import Departement, UQOProgramme
+from src.models.uqo import Departement, UQOProgramme
 from src.cache import AsyncCache
 
 

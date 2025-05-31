@@ -2,7 +2,7 @@ import httpx
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional
 import asyncio
-from src.schemas.uqo import Departement, UQOCours
+from src.models.uqo import Departement, UQOCours
 from src.cache import AsyncCache
 
 

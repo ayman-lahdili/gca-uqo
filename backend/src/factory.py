@@ -5,10 +5,10 @@ from sqlmodel import Session
 from typing import Self
 from src.config import Settings
 
-from src.schemas.uqo import UQOCours, UQOProgramme
+from src.models.uqo import UQOCours, UQOProgramme
 from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
 from src.services import CampagneService, EtudiantService, CandidatureService
-from src.providers import StorageProvider, LocalStorageProvider
+from src.file import StorageProvider, LocalStorageProvider
 from src.cache import AsyncCache
 
 

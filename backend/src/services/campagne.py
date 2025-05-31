@@ -1,7 +1,7 @@
 from sqlmodel import select
 from sqlmodel import Session
 
-from src.models import Campagne
+from src.schemas import Campagne
 
 
 class CampagneService:

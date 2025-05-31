@@ -3,8 +3,8 @@ from datetime import datetime
 import json
 from typing import Dict, List, Any
 
-from src.models import Cours, Seance, Activite
-from src.schemas.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine
+from src.schemas import Cours, Seance, Activite
+from src.models.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine
 
 
 class UQOHoraireService:

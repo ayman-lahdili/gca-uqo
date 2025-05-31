@@ -17,7 +17,7 @@ def create_app(settings: Settings):
         await context_dependency.initialize(settings)
         yield
         await context_dependency.aclose()
-        db_session_dependency.aclose()
+        db_session_dependency.close()
 
     app = FastAPI(
         title=settings.PROJECT_NAME,

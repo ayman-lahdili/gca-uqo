@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from src.schemas.uqo import UQOCours, UQOProgramme, Departement, Cycle
+from src.models.uqo import UQOCours, UQOProgramme, Departement, Cycle
 from src.dependencies.context import Context
 
 router = APIRouter(tags=["uqo"])

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlmodel import Session, select
 
-from src.models import Etudiant
+from src.schemas import Etudiant
 
 
 class EtudiantService:

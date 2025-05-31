@@ -3,7 +3,7 @@ from fastapi import Depends, Path, HTTPException
 from typing import Annotated
 
 from src.dependencies.context import Context
-from src.models import Campagne
+from src.schemas import Campagne
 
 
 def get_current_campagne(

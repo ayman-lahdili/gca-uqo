@@ -1,9 +1,9 @@
 from sqlmodel import Session, select
 from fastapi.responses import FileResponse
 
-from src.models import Etudiant, Candidature
-from src.schemas.requests import CandidatureForm
-from src.providers import StorageProvider
+from src.schemas import Etudiant, Candidature
+from src.models.requests import CandidatureForm
+from src.file import StorageProvider
 from src.exceptions import StorageError, FileDeleteError, ResumeNotFoundError
 
 

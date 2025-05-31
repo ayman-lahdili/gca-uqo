@@ -2,7 +2,7 @@ from fastapi import Depends, Path, Form, HTTPException, Request
 from typing import Annotated, Optional
 
 from src.dependencies.context import Context
-from src.models import Etudiant
+from src.schemas import Etudiant
 
 
 def _find_etudiant_or_raise(

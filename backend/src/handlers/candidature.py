@@ -5,8 +5,8 @@ from src.dependencies.campagne import get_current_campagne
 from src.dependencies.etudiant import ensure_etudiant_does_not_exist, CurrentEtudiant
 from src.dependencies.context import Context
 
-from src.schemas.responses import EtudiantFullResponse, Message
-from src.schemas.requests import CandidatureForm
+from src.models.responses import EtudiantFullResponse, Message
+from src.models.requests import CandidatureForm
 
 from src.exceptions import StorageError, ResumeNotFoundError
 

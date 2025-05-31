@@ -1,8 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import Any, List
 
-from src.models import Cours, Activite, Seance
-from src.schemas.uqo import ChangeType, ActiviteStatus
+from src.schemas import Cours, Activite, Seance
+from src.models.uqo import ChangeType, ActiviteStatus
 
 
 @dataclass

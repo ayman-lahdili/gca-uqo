@@ -4,8 +4,8 @@ from datetime import datetime
 
 from typing import List, Dict, Any
 
-from src.models import Cours, Activite, Seance
-from src.schemas.uqo import (
+from src.schemas import Cours, Activite, Seance
+from src.models.uqo import (
     Campus,
     ActiviteType,
     ActiviteMode,

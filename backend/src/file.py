@@ -50,7 +50,6 @@ class LocalStorageProvider(StorageProvider):
 
     def read_file(self, filename: str) -> FileResponse:
         found_files = list(self.base_directory.glob(filename))
-        # print(found_files)
 
         if not found_files:
             raise FileNotFoundError(f"File not found: {filename}")

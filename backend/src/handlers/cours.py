@@ -4,9 +4,9 @@ from sqlmodel import select
 from pydantic import BaseModel
 
 from src.dependencies.session import SessionDep, StorageDep
-from src.models import Cours, Etudiant, Candidature
-from src.schemas.uqo import Campus
-from src.schemas.responses import (
+from src.schemas import Cours, Etudiant, Candidature
+from src.models.uqo import Campus
+from src.models.responses import (
     CoursFullResponse,
 )
 
