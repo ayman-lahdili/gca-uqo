@@ -29,7 +29,7 @@ from src.models.requests import (
     SeanceUpdateRequest,
 )
 
-from src.core.diffs import CoursDiffer
+from src.services.uqo.diffs import CoursDiffer
 
 router = APIRouter(tags=["campagne"])
 

@@ -3,8 +3,8 @@ import json
 from typing import Dict, Any
 from copy import deepcopy, copy
 
-from src.core.uqo import UQOHoraireService
-from src.core.diffs import CoursDiffer
+from src.services.uqo import UQOHoraireService
+from src.services.uqo.diffs import CoursDiffer
 from src.schemas import Cours
 from src.models.uqo import ChangeType, ActiviteType, Campus
 
