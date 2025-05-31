@@ -13,19 +13,21 @@ router = APIRouter(tags=["cours"])
 
 
 @router.post(
-    "/v1/cours/{trimestre}/{sigle}/candidature", 
+    "/v1/cours/{trimestre}/{sigle}/candidature",
     response_model=CoursFullResponse,
 )
 async def add_candidature_to_cours(
     *,
     cours: CurrentCourse,
-    trimestre: int, 
-    payload: CandidaturePayload, 
-    context: Context
+    trimestre: int,
+    payload: CandidaturePayload,
+    context: Context,
 ):
     try:
         candidature_service = context.factory.create_candidature_service(trimestre)
-        return await candidature_service.add_candidature_to_cours(cours=cours, payload=payload)
+        return await candidature_service.add_candidature_to_cours(
+            cours=cours, payload=payload
+        )
     except CandidatureExistsError:
         raise HTTPException(
             status_code=404, detail="Une candidature existe déjà pour ce candidat"
@@ -34,10 +36,7 @@ async def add_candidature_to_cours(
 
 @router.post("/v1/cours/{trimestre}/{sigle}/resumes", response_class=StreamingResponse)
 async def download_multiple_resumes(
-    *,
-    trimestre: int, 
-    cours: CurrentCourse,
-    context: Context
+    *, trimestre: int, cours: CurrentCourse, context: Context
 ):
     try:
         candidature_service = context.factory.create_candidature_service(trimestre)

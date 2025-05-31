@@ -10,6 +10,7 @@ from src.models.uqo import CampagneConfig, ActiviteType, CampagneStatus
 
 from src.exceptions import CampagneTooAhead
 
+
 class CampagneService:
     def __init__(
         self,
@@ -23,7 +24,7 @@ class CampagneService:
             select(Campagne).where(Campagne.trimestre == trimestre)
         ).first()
         return campagne
-    
+
     async def add_campagne(self, payload: CampagneCreateRequest):
         def is_more_than_3_trimestres_ahead(target_trimestre: int) -> bool:
             now = datetime.now()
@@ -63,7 +64,7 @@ class CampagneService:
         self._session.refresh(campagne, attribute_names=["cours"])
 
         return campagne
-    
+
     async def get_campagne_list(self):
         campagnes = self._session.exec(select(Campagne)).all()
 
@@ -87,20 +88,22 @@ class CampagneService:
                     ] = {}
                     for activite in seance.activite:
                         for responsable in activite.responsable:
-                            total_assistant_par_cycle[responsable.etudiant.cycle - 1].add(
-                                responsable.id_etudiant
-                            )
+                            total_assistant_par_cycle[
+                                responsable.etudiant.cycle - 1
+                            ].add(responsable.id_etudiant)
 
                             if responsable.id_etudiant not in etudiant_contracts_total:
                                 etudiant_contracts_total[responsable.id_etudiant] = 0
                                 etudiant_contracts_nbr_seance_weekly[
                                     responsable.id_etudiant
                                 ] = {ActiviteType.TD: 0, ActiviteType.TP: 0}
-                            etudiant_contracts_nbr_seance_weekly[responsable.id_etudiant][
-                                activite.type
-                            ] += 1
+                            etudiant_contracts_nbr_seance_weekly[
+                                responsable.id_etudiant
+                            ][activite.type] += 1
 
-                            hrs_prepa = configs.activite_heure[activite.type].preparation
+                            hrs_prepa = configs.activite_heure[
+                                activite.type
+                            ].preparation
                             hrs_travail = configs.activite_heure[activite.type].travail
 
                             # Add Prépa time only once per n activity in a week
@@ -124,7 +127,9 @@ class CampagneService:
                             etudiant_contracts_total[responsable.id_etudiant] += (
                                 activite.nombre_seance
                                 * hrs_travail
-                                * configs.echelle_salariale[responsable.etudiant.cycle - 1]
+                                * configs.echelle_salariale[
+                                    responsable.etudiant.cycle - 1
+                                ]
                             )
 
                     tot_seance = sum(etudiant_contracts_total.values())
@@ -175,9 +180,9 @@ class CampagneService:
                 },
             }
             result.append(campagne_dict)
-        
+
         return result
-    
+
     async def update_campagne(self, campagne: Campagne, payload: CampagneUpdateRequest):
         # Update Campagne fields
         if payload.config is not None:

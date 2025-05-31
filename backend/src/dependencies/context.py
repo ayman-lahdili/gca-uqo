@@ -37,6 +37,7 @@ class ContextDependency:
     process-global `~factory.ProcessContext` and reused with each
     request.
     """
+
     def __init__(self) -> None:
         self._settings: Settings | None = None
         self._process_context: ProcessContext | None = None

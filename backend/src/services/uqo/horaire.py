@@ -6,12 +6,25 @@ from typing import Dict, List, Any
 from sqlmodel import Session
 
 from src.schemas import Cours, Seance, Activite, Campagne
-from src.models.uqo import ActiviteType, ActiviteMode, ChangeType, Campus, JourSemaine, CoursStatus
+from src.models.uqo import (
+    ActiviteType,
+    ActiviteMode,
+    ChangeType,
+    Campus,
+    JourSemaine,
+    CoursStatus,
+)
 from src.services.uqo.diffs import CoursDiffer
 
 
 class UQOHoraireService:
-    def __init__(self, trimestre, *, diff_checker_cls: type[CoursDiffer] = CoursDiffer, session: Session) -> None:
+    def __init__(
+        self,
+        trimestre,
+        *,
+        diff_checker_cls: type[CoursDiffer] = CoursDiffer,
+        session: Session,
+    ) -> None:
         self.url = "https://etudier.uqo.ca/activites/recherche-horaire-resultats-ajax"
         self.trimestre = trimestre
         self.horaire = self.get_horaire(self.trimestre)
@@ -89,7 +102,7 @@ class UQOHoraireService:
                 for seance in cours["LstActCrs"]
             ],
         )
-    
+
     async def sync_courses(self, campagne: Campagne) -> Campagne:
         for old_course in campagne.cours:
             await self.sync_course(old_course)
@@ -107,7 +120,7 @@ class UQOHoraireService:
             return
         else:
             old_cours.status = CoursStatus.confirmee
-        
+
         differ = self.diff_checker_cls(old_cours, new_cours)
 
         old_cours = differ.compare()
@@ -117,7 +130,6 @@ class UQOHoraireService:
                 self._session.add(act)
 
         self._session.add(old_cours)
-        
 
 
 def _parse_campus(unparsed: str) -> List[Campus]:

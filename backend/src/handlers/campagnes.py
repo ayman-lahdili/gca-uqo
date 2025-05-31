@@ -26,7 +26,7 @@ router = APIRouter(tags=["campagne"])
 
 
 @router.post(
-    "/v1/campagne", 
+    "/v1/campagne",
     response_model=CampagneFullResponse,
 )
 async def create_campagne(
@@ -41,7 +41,7 @@ async def create_campagne(
             status_code=404,
             detail=f"Campagne already exists for trimestre {payload.trimestre}",
         )
-    
+
     try:
         campagne = await campagne_service.add_campagne(payload)
         return campagne
@@ -51,22 +51,14 @@ async def create_campagne(
             detail=f"Impossible de créer une campagne pour le trimestre {payload.trimestre} car il est plus de 3 trimestres dans le futur.",
         )
 
-@router.get(
-    "/v1/campagne", 
-    response_model=List[CampagneResponse]
-)
-async def get_campagnes(
-    *,
-    context: Context
-) -> Any:
+
+@router.get("/v1/campagne", response_model=List[CampagneResponse])
+async def get_campagnes(*, context: Context) -> Any:
     campagne_service = context.factory.create_campagne_service()
     return await campagne_service.get_campagne_list()
 
 
-@router.get(
-    "/v1/campagne/{trimestre}", 
-    response_model=CampagneFullResponse
-)
+@router.get("/v1/campagne/{trimestre}", response_model=CampagneFullResponse)
 def get_campagne_by_trimestre(
     *,
     campagne: CurrentCampagne,
@@ -93,7 +85,9 @@ async def update_campagne(
     try:
         return await campagne_service.update_campagne(campagne, payload)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Configuration de campagne invalide")
+        raise HTTPException(
+            status_code=400, detail="Configuration de campagne invalide"
+        )
 
 
 @router.post("/v1/campagne/{trimestre}/sync", response_model=CampagneFullResponse)
@@ -109,12 +103,7 @@ async def sync_campagne(
 @router.patch(
     "/v1/campagne/{trimestre}/{sigle}/changes/approve", response_model=ApprovalResponse
 )
-async def approve_course(
-    *,
-    trimestre: int,
-    cours: CurrentCourse, 
-    context: Context
-):
+async def approve_course(*, trimestre: int, cours: CurrentCourse, context: Context):
     cours_service = context.factory.create_cours_service(trimestre)
     return await cours_service.approve_changes(cours)
 
@@ -123,12 +112,7 @@ async def approve_course(
     "/v1/campagne/{trimestre}/{sigle}/{groupe}/changes/approve",
     response_model=ApprovalResponse,
 )
-async def approve_seance(
-    *,
-    trimestre: int, 
-    groupe: CurrentGroupe,
-    context: Context
-):
+async def approve_seance(*, trimestre: int, groupe: CurrentGroupe, context: Context):
     groupe_service = context.factory.create_groupe_service(trimestre)
     return await groupe_service.approve_changes(groupe)
 
@@ -136,15 +120,10 @@ async def approve_seance(
 @router.patch(
     "/v1/campagne/{trimestre}/{sigle}/{groupe}/{activite_id}/changes/approve",
     response_model=ApprovalResponse,
-    dependencies=[
-        Depends(get_current_groupe)
-    ]
+    dependencies=[Depends(get_current_groupe)],
 )
 async def approve_activite(
-    *, 
-    trimestre: int, 
-    activite: CurrentActivite, 
-    context: Context
+    *, trimestre: int, activite: CurrentActivite, context: Context
 ):
     groupe_service = context.factory.create_groupe_service(trimestre)
     return await groupe_service.approve_changes_activite(activite)

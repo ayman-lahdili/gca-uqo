@@ -65,4 +65,5 @@ class Settings(BaseSettings):
     def __call__(cls):
         return cls()
 
+
 settings = Settings()

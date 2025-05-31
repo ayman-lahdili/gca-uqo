@@ -6,7 +6,13 @@ from src.models.requests import CandidatureForm, CandidaturePayload
 from src.models.uqo import Campus
 
 from src.file import StorageProvider
-from src.exceptions import StorageError, FileDeleteError, ResumeNotFoundError, CandidatureExistsError, NoStudentsFoundError
+from src.exceptions import (
+    StorageError,
+    FileDeleteError,
+    ResumeNotFoundError,
+    CandidatureExistsError,
+    NoStudentsFoundError,
+)
 
 
 class CandidatureService:
@@ -131,12 +137,12 @@ class CandidatureService:
             return self._storage.read_file(etudiant.get_file_name)
         except FileNotFoundError:
             raise ResumeNotFoundError()
-        
+
     async def get_resumes_for_course(self, cours: Cours) -> StreamingResponse:
         filenames = [c.etudiant.get_file_name for c in cours.candidature]
         if not filenames:
             raise NoStudentsFoundError()
-        
+
         return self._storage.zip_files(f"resumes_{self._trimestre}", filenames)
 
     async def get_all_candidature(self) -> list[Etudiant]:
@@ -155,12 +161,14 @@ class CandidatureService:
         self._session.delete(etudiant)
         self._session.commit()
 
-    async def add_candidature_to_cours(self, *, cours: Cours, payload: CandidaturePayload):
+    async def add_candidature_to_cours(
+        self, *, cours: Cours, payload: CandidaturePayload
+    ):
         student = self._session.exec(
             select(Etudiant).where(
-                    (Etudiant.code_permanent == payload.code_permanent)
-                    & (Etudiant.trimestre == self._trimestre)
-                )
+                (Etudiant.code_permanent == payload.code_permanent)
+                & (Etudiant.trimestre == self._trimestre)
+            )
         ).first()
 
         if not student:
@@ -171,7 +179,9 @@ class CandidatureService:
                 nom=payload.nom,
                 prenom=payload.prenom,
                 cycle=payload.cycle,
-                campus=Campus(payload.campus) if payload.campus else Campus.non_specifie,
+                campus=Campus(payload.campus)
+                if payload.campus
+                else Campus.non_specifie,
                 programme=payload.programme,
                 trimestre=self._trimestre,
             )

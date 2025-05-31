@@ -5,8 +5,13 @@ from typing import Annotated
 from src.dependencies.context import Context
 from src.schemas import Seance
 
+
 async def get_current_groupe(
-    *, trimestre: Annotated[int, Path()], sigle: Annotated[str, Path()], groupe: Annotated[str, Path()], context: Context
+    *,
+    trimestre: Annotated[int, Path()],
+    sigle: Annotated[str, Path()],
+    groupe: Annotated[str, Path()],
+    context: Context,
 ) -> Seance:
     groupe_service = context.factory.create_groupe_service(trimestre)
     current_groupe = await groupe_service.get_groupe(sigle=sigle, groupe=groupe)

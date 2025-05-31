@@ -6,6 +6,7 @@ from src.models.responses import ApprovalResponse, ChangeInfo, ChangeType
 from src.models.uqo import ActiviteStatus
 from src.exceptions import ActiviteNotFoundError
 
+
 class GroupeService:
     def __init__(
         self,
@@ -24,9 +25,11 @@ class GroupeService:
                 Seance.groupe == groupe,
             )
         ).first()
-    
+
     async def get_activite(self, *, activite_id: int) -> Activite | None:
-        return self._session.exec(select(Activite).where(Activite.id == activite_id)).first()
+        return self._session.exec(
+            select(Activite).where(Activite.id == activite_id)
+        ).first()
 
     async def approve_changes(self, seance: Seance) -> ApprovalResponse:
         approved_change = ChangeInfo(**seance.change)
@@ -52,7 +55,7 @@ class GroupeService:
         return ApprovalResponse(
             entity=seance.model_dump(), change=approved_change, approved=True
         )
-    
+
     async def approve_changes_activite(self, activite: Activite) -> ApprovalResponse:
         approved_change = ChangeInfo(**activite.change)
 
@@ -68,8 +71,10 @@ class GroupeService:
         return ApprovalResponse(
             entity=activite.model_dump(), change=approved_change, approved=True
         )
-    
-    async def update_groupe(self, *, groupe: Seance, payload: SeanceUpdateRequest) -> Seance:
+
+    async def update_groupe(
+        self, *, groupe: Seance, payload: SeanceUpdateRequest
+    ) -> Seance:
         for act in payload.activite:
             activite = await self.get_activite(activite_id=act.id)
 

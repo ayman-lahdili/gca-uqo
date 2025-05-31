@@ -7,7 +7,13 @@ from src.config import Settings
 
 from src.models.uqo import UQOCours, UQOProgramme
 from src.services.uqo import UQOCoursService, UQOProgrammeService, UQOHoraireService
-from src.services import CampagneService, EtudiantService, CandidatureService, CoursService, GroupeService
+from src.services import (
+    CampagneService,
+    EtudiantService,
+    CandidatureService,
+    CoursService,
+    GroupeService,
+)
 from src.file import StorageProvider, LocalStorageProvider
 from src.cache import AsyncCache
 
@@ -87,9 +93,7 @@ class Factory:
             self.session.close()
 
     def create_uqo_course_service(self) -> UQOCoursService:
-        return UQOCoursService(
-            cours_cache=self._context.uqo_cours_cache
-        )
+        return UQOCoursService(cours_cache=self._context.uqo_cours_cache)
 
     def create_uqo_programme_service(self) -> UQOProgrammeService:
         return UQOProgrammeService(
@@ -112,8 +116,6 @@ class Factory:
 
     def create_cours_service(self, trimestre: int) -> CoursService:
         return CoursService(trimestre, session=self.session)
-    
+
     def create_groupe_service(self, trimestre: int) -> GroupeService:
         return GroupeService(trimestre, session=self.session)
-    
-    

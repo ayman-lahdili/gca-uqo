@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from src.schemas import Cours
 from src.models.responses import ApprovalResponse, ChangeInfo, ChangeType
 
+
 class CoursService:
     def __init__(
         self,
@@ -15,9 +16,11 @@ class CoursService:
 
     async def get_course(self, sigle: str) -> Cours | None:
         return self._session.exec(
-            select(Cours).where((Cours.trimestre == self._trimestre) & (Cours.sigle == sigle))
+            select(Cours).where(
+                (Cours.trimestre == self._trimestre) & (Cours.sigle == sigle)
+            )
         ).first()
-    
+
     async def approve_changes(self, cours: Cours) -> ApprovalResponse:
         approved_change = ChangeInfo(**cours.change)
 

@@ -19,7 +19,7 @@ def test_settings(
 ) -> Generator[Settings, None, None]:
     db_path = tmp_path_factory.mktemp("tmp_test_databases") / "test_database.db"
     monkeypatch.setenv("SQLLITE_FILE_NAME", str(db_path))
-        
+
     yield settings()
 
 

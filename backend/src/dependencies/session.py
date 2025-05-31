@@ -10,9 +10,13 @@ from src.file import StorageProvider, LocalStorageProvider
 
 async def get_storage_provider() -> StorageProvider:
     return LocalStorageProvider("./uploaded_resumes")
+
+
 StorageDep = Annotated[StorageProvider, Depends(get_storage_provider)]
 
 """Database session dependency"""
+
+
 class DatabaseSessionDependency:
     def __init__(self) -> None:
         self._engine: Engine | None = None
