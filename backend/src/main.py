@@ -13,13 +13,15 @@ from src.dependencies.session import db_session_dependency
 def create_app(settings: Settings):
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-        db_session_dependency.initialize(
+        await context_dependency.initialize(settings)
+        await db_session_dependency.initialize(
             settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False}
         )
-        await context_dependency.initialize(settings)
+
         yield
+        
+        await db_session_dependency.aclose()
         await context_dependency.aclose()
-        db_session_dependency.close()
 
     app = FastAPI(
         title=settings.PROJECT_NAME,

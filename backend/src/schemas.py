@@ -17,6 +17,8 @@ from sqlalchemy import ForeignKeyConstraint
 
 
 class Campagne(SQLModel, table=True):
+    """Represents a campaign for a given trimester, its configurations and grouping related courses."""
+    
     id: Optional[int] = Field(default=None, primary_key=True)
     trimestre: int = Field(index=True)
     status: CampagneStatus = Field(default=CampagneStatus.en_cours)
@@ -28,6 +30,8 @@ class Campagne(SQLModel, table=True):
 
 
 class Cours(SQLModel, table=True):
+    """Represents a course offered in a specific trimester, including its status and related candidatures."""
+
     sigle: str = Field(index=True, primary_key=True)
     trimestre: int = Field(index=True, primary_key=True)
     titre: str
@@ -52,6 +56,8 @@ class Cours(SQLModel, table=True):
 
 
 class Seance(SQLModel, table=True):
+    """Represents a groupe (seance) of a course, including scheduling and campus information."""
+
     __table_args__ = (
         ForeignKeyConstraint(
             ["trimestre", "sigle"],
@@ -63,30 +69,29 @@ class Seance(SQLModel, table=True):
     ressource: list[Dict[str, str | None]] = Field(
         default=[], sa_column=Column(MutableList.as_mutable(JSON))
     )
-
     change: Dict = Field(
         default={"change_type": ChangeType.UNCHANGED, "value": {}},
         sa_column=Column(MutableDict.as_mutable(JSON)),
     )
-
     trimestre: int = Field(primary_key=True)
     sigle: str = Field(primary_key=True)
     groupe: str = Field(primary_key=True)
 
     cours: Cours = Relationship(back_populates="seance")
-
     activite: list["Activite"] = Relationship(
         back_populates="seance", cascade_delete=True
     )
 
 
 class ActiviteCandidature(SQLModel, table=True):
+    """Association table linking activities and candidatures."""
     id_activite: int = Field(foreign_key="activite.id", primary_key=True)
     id_candidature: int = Field(foreign_key="candidature.id", primary_key=True)
-    note: Note = Field(default=Note.non_specifie)
 
 
 class Activite(SQLModel, table=True):
+    """Represents an activity (such as a lab or lecture) within a session, including scheduling and responsible candidatures."""
+
     __table_args__ = (
         ForeignKeyConstraint(
             ["trimestre", "sigle", "groupe"],
@@ -97,7 +102,6 @@ class Activite(SQLModel, table=True):
     trimestre: int
     sigle: str
     groupe: str
-
     id: Optional[int] | None = Field(default=None, primary_key=True)
     type: ActiviteType = Field(default=None)
     mode: ActiviteMode = Field(default=None)
@@ -108,20 +112,20 @@ class Activite(SQLModel, table=True):
     date_debut: datetime
     date_fin: datetime
     nombre_seance: int = 0
-
     change: Dict = Field(
         default={"change_type": ChangeType.UNCHANGED, "value": {}},
         sa_column=Column(MutableDict.as_mutable(JSON)),
     )
 
     seance: Seance = Relationship(back_populates="activite")
-
     responsable: list["Candidature"] = Relationship(
         back_populates="activite", link_model=ActiviteCandidature
     )
 
 
 class Etudiant(SQLModel, table=True):
+    """Represents a student, including personal and academic information, and their candidatures."""
+
     id: Optional[int] | None = Field(default=None, primary_key=True)
     code_permanent: str = Field(index=True)
     email: str
@@ -142,6 +146,11 @@ class Etudiant(SQLModel, table=True):
 
 
 class Candidature(SQLModel, table=True):
+    """Represents a student's application (candidature) to a course, including their note and related activities."""
+
+    sigle: str
+    titre: str = ""
+    trimestre: int
     id: Optional[int] | None = Field(default=None, primary_key=True)
     id_etudiant: int = Field(foreign_key="etudiant.id")
     note: Note = Field(default=Note.non_specifie)
@@ -150,6 +159,3 @@ class Candidature(SQLModel, table=True):
     activite: list["Activite"] = Relationship(
         back_populates="responsable", link_model=ActiviteCandidature
     )
-    sigle: str
-    titre: str = ""
-    trimestre: int
