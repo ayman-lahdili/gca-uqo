@@ -31,10 +31,8 @@ class UQOProgrammeService:
     async def get_programmes(
         self, departement: Departement, cycle: Literal["1", "2", "3"]
     ) -> List[UQOProgramme]:
-        # Convert department to string for use as cache key
         programmes_key = str(departement) + str(cycle)
 
-        # Use the cache's get_or_create to handle concurrency and prevent dog-pile
         return await self._programme_cache.get_or_create(
             programmes_key, lambda: self._fetch_programmes(departement, cycle)
         )

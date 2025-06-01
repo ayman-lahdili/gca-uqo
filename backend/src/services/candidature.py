@@ -208,9 +208,6 @@ class CandidatureService:
 
         if candidature:
             raise CandidatureExistsError()
-            raise HTTPException(
-                status_code=404, detail="Une candidature existe déjà pour ce candidat"
-            )
 
         candidature = Candidature(
             id_etudiant=student.id,

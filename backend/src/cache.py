@@ -1,8 +1,7 @@
 import asyncio
-import time
 from cachetools import TTLCache
 from collections.abc import Callable, Awaitable
-from typing import Dict, Generic, TypeVar, Optional, Any
+from typing import Dict, Generic, TypeVar, Optional
 
 T = TypeVar("T")
 

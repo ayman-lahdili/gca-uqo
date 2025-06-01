@@ -5,13 +5,14 @@ from collections.abc import Generator
 
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import create_engine
 from sqlmodel.pool import StaticPool
 
 from src.main import create_app
 from src.factory import Factory
-from src.scripts.initial_data import init_db
 from src.config import Settings, settings
+
+from tests.scripts.initial_data import init_db
 
 
 @pytest.fixture(scope="function")

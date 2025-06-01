@@ -1,21 +1,20 @@
 import os
-import logging
 
+import structlog
 from sqlalchemy import Engine
 from sqlmodel import SQLModel, create_engine
 
 from src.config import Settings, settings
 from src.models import *
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger("tests")
 
 
 def init_db(settings: Settings, engine: Engine):
     if os.path.exists(settings.SQLLITE_FILE_NAME):
         os.remove(settings.SQLLITE_FILE_NAME)
-        print(f"Database {settings.SQLLITE_FILE_NAME} deleted.")
-    print("Creating database", settings.SQLLITE_FILE_NAME)
+        logger.info(f"Database {settings.SQLLITE_FILE_NAME} deleted.")
+    logger.info(f"Creating database f{settings.SQLLITE_FILE_NAME}")
     SQLModel.metadata.create_all(engine)
 
 

@@ -68,7 +68,6 @@ class UQOHoraireService:
         return results.json()
 
     async def get_course(self, sigle: str):
-        # print(self.horaire)
         self.horaire = await self.get_horaire(self.trimestre)
         cours = None
         for cours_data in self.horaire:

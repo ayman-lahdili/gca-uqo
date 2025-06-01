@@ -9,4 +9,5 @@ __all__ = [
     "EtudiantService",
     "CandidatureService",
     "CoursService",
+    "GroupeService"
 ]

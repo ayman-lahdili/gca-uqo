@@ -2,7 +2,6 @@ from httpx import AsyncClient, HTTPError
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional
 from structlog import BoundLogger
-import asyncio
 
 from src.models.uqo import Departement, UQOCours
 from src.cache import AsyncCache
@@ -114,10 +113,10 @@ class UQOCoursService:
             return self._parse_courses_html(response.text)
 
         except HTTPError as e:
-            print(f"HTTP error fetching courses for {departement}: {str(e)}")
+            self._logger.error(f"HTTP error fetching courses for {departement}: {str(e)}")
             raise
         except Exception as e:
-            print(f"Error fetching courses for {departement}: {str(e)}")
+            self._logger.error(f"Error fetching courses for {departement}: {str(e)}")
             raise ValueError(f"Failed to fetch or parse courses: {str(e)}")
 
     async def _get_fresh_token(self) -> tuple[str, Dict[str, str]]:
@@ -159,13 +158,13 @@ class UQOCoursService:
         return token, headers
 
     def _parse_courses_html(self, html_content: str) -> List[UQOCours]:
-        print("Parsing HTML content to extract courses")
+        self._logger.info("Parsing HTML content to extract courses")
         soup = BeautifulSoup(html_content, "html.parser")
 
         # Find the div containing course list
         courses_div: Any = soup.find("div", id="divLstCrs")
         if not courses_div:
-            print("Could not find courses div in HTML")
+            self._logger.warning("Could not find courses div in HTML")
             return []
 
         # Find all course items (each row contains a course)

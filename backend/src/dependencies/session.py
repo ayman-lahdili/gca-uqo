@@ -1,23 +1,13 @@
 from collections.abc import Generator
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import Depends
 from sqlalchemy import Engine
 from sqlmodel import Session, create_engine
 
-from src.file import StorageProvider, LocalStorageProvider
-
-
-async def get_storage_provider() -> StorageProvider:
-    return LocalStorageProvider("./uploaded_resumes")
-
-
-StorageDep = Annotated[StorageProvider, Depends(get_storage_provider)]
-
-"""Database session dependency"""
-
 
 class DatabaseSessionDependency:
+    """Database session dependency"""
+    
     def __init__(self) -> None:
         self._engine: Engine | None = None
 
@@ -50,5 +40,3 @@ class DatabaseSessionDependency:
 
 db_session_dependency = DatabaseSessionDependency()
 """The dependency that will return the sync session proxy."""
-
-SessionDep = Annotated[Session, Depends(db_session_dependency)]

@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from src.schemas import Campagne, Cours, Activite, Etudiant
 from src.models.requests import CampagneCreateRequest, CampagneUpdateRequest
-from src.models.uqo import CampagneConfig, ActiviteType, CampagneStatus
+from src.models.uqo import CampagneConfig, ActiviteType
 
 from src.exceptions import CampagneTooAhead
 

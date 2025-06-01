@@ -23,8 +23,6 @@ def test_candidature(client: TestClient, factory: Factory):
     response = client.get("/v1/20251/candidature")
     data = response.json()
 
-    print(data)
-
     assert len(data) > 0
 
     assert 1 == 1
@@ -48,8 +46,6 @@ def test_candidature_2(client: TestClient, factory: Factory):
 
     response = client.get("/v1/20251/candidature")
     data = response.json()
-
-    print(data)
 
     assert len(data) > 0
 

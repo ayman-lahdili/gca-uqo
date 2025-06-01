@@ -89,13 +89,11 @@ class GroupeService:
 
                 # Assign new list from payload
                 for candidature_id in act.candidature:
-                    print("actact.candidature:", act.candidature)
                     candidature = self._session.exec(
                         select(Candidature).where(Candidature.id == candidature_id)
                     ).first()
 
                     if not candidature:
-                        print("Candidature not found")
                         continue
 
                     activite.responsable.append(candidature)
