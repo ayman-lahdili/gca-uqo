@@ -27,6 +27,18 @@ The UQO Candidate Management System (GCA-UQO)
 
 ## How to run it yourself
 
+* Clone this repository
+
+    ```bash
+    git clone git@github.com:ayman-lahdili/gca-uqo.git
+    ```
+
+* Enter into the new directory:
+
+    ```bash
+    cd gca-uqo
+    ```
+
 * Start the local stack with Docker compose:
 
     ```bash
