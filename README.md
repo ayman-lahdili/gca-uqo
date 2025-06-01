@@ -70,4 +70,4 @@ The design pattern used throughout the backend is heavily inspired by the recomm
 
 ![Budget](img/budget.png)
 
-![CSV Export](img/export.png.png)
+![CSV Export](img/export.png)
