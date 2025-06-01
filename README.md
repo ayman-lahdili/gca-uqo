@@ -23,6 +23,7 @@ The UQO Candidate Management System (GCA-UQO)
     - 🌗 Dark mode support via Tailwind + PrimeVue themes.
 - 🐋 [Docker Compose](https://www.docker.com) for containerized development and production.
 - ✅ Tests with [Pytest](https://pytest.org).
+- 🦗 [Locust](https://locust.io/) for stress testing.
 - 📞 [Nginx](https://nginx.org/) as a reverse proxy / load balancer.
 
 ## How to run it yourself
