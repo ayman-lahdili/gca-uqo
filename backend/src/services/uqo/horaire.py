@@ -1,4 +1,5 @@
-import requests
+from httpx import HTTPError, AsyncClient
+from structlog import BoundLogger
 from datetime import datetime
 import json
 from typing import Dict, List, Any
@@ -16,6 +17,8 @@ from src.models.uqo import (
 )
 from src.services.uqo.diffs import CoursDiffer
 
+from src.cache import AsyncCache
+
 
 class UQOHoraireService:
     def __init__(
@@ -23,15 +26,28 @@ class UQOHoraireService:
         trimestre,
         *,
         diff_checker_cls: type[CoursDiffer] = CoursDiffer,
+        horaire_cache: AsyncCache[List[dict[str, Any]]],
         session: Session,
+        http_client: AsyncClient,
+        logger: BoundLogger,
     ) -> None:
         self.url = "https://etudier.uqo.ca/activites/recherche-horaire-resultats-ajax"
         self.trimestre = trimestre
-        self.horaire = self.get_horaire(self.trimestre)
+        self.horaire = None
         self.diff_checker_cls = diff_checker_cls
+        self._horaire_cache = horaire_cache
         self._session = session
+        self._http_client = http_client
+        self._logger = logger
 
-    def get_horaire(self, trimestre: int):
+    async def get_horaire(self, trimestre: int):
+        horaire_key = str(trimestre)
+
+        return await self._horaire_cache.get_or_create(
+            horaire_key, lambda: self._fetch_horaire(trimestre)
+        )
+
+    async def _fetch_horaire(self, trimestre: int):
         params = {
             "CdTrimestre": trimestre,
             "JourSem": [
@@ -45,14 +61,15 @@ class UQOHoraireService:
             ],
         }
 
-        results = requests.get(self.url, params=params)
+        results = await self._http_client.get(self.url, params=params)
         # with open("tests/files/full_response.json", "r", encoding="utf-8") as f:
         #     return json.loads(f.read())
 
         return results.json()
 
-    def get_course(self, sigle: str):
+    async def get_course(self, sigle: str):
         # print(self.horaire)
+        self.horaire = await self.get_horaire(self.trimestre)
         cours = None
         for cours_data in self.horaire:
             if cours_data["SigCrs"] == sigle:
@@ -113,7 +130,7 @@ class UQOHoraireService:
         return campagne
 
     async def sync_course(self, old_cours: Cours) -> None:
-        new_cours = self.get_course(old_cours.sigle)
+        new_cours = await self.get_course(old_cours.sigle)
 
         if not new_cours:
             old_cours.status = CoursStatus.non_confirmee

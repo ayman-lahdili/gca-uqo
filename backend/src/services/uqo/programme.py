@@ -1,7 +1,10 @@
 import json
 import httpx
+from httpx import AsyncClient, HTTPError
+from structlog import BoundLogger
 import re
-from typing import Any, Dict, List, Literal
+from typing import List, Literal
+
 from src.models.uqo import Departement, UQOProgramme
 from src.cache import AsyncCache
 
@@ -13,9 +16,17 @@ class UQOAPIException(Exception):
 
 
 class UQOProgrammeService:
-    def __init__(self, *, programme_cache: AsyncCache[List[UQOProgramme]]) -> None:
+    def __init__(
+        self,
+        *,
+        programme_cache: AsyncCache[List[UQOProgramme]],
+        http_client: AsyncClient,
+        logger: BoundLogger,
+    ) -> None:
         self.url = "https://etudier.uqo.ca/programmes"
         self._programme_cache = programme_cache
+        self._http_client = http_client
+        self._logger = logger
 
     async def get_programmes(
         self, departement: Departement, cycle: Literal["1", "2", "3"]
@@ -34,11 +45,10 @@ class UQOProgrammeService:
         pattern = re.compile(r"jsonLstRes\s*=\s*(\[.*)")
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.get(self.url, timeout=30)
-                resp.raise_for_status()
-                html_text = resp.text
-        except httpx.HTTPError as e:
+            resp = await self._http_client.get(self.url, timeout=30)
+            resp.raise_for_status()
+            html_text = resp.text
+        except HTTPError as e:
             raise UQOAPIException(f"Failed to fetch {self.url}: {str(e)}")
 
         match = pattern.search(html_text)

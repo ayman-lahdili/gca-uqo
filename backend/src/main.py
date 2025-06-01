@@ -8,6 +8,7 @@ from src.handlers import campagnes, candidature, cours, uqo
 from src.config import Settings, settings
 from src.dependencies.context import context_dependency
 from src.dependencies.session import db_session_dependency
+from src.dependencies.http_client import http_client_dependency
 
 
 def create_app(settings: Settings):
@@ -19,7 +20,8 @@ def create_app(settings: Settings):
         )
 
         yield
-        
+
+        await http_client_dependency.aclose()
         await db_session_dependency.aclose()
         await context_dependency.aclose()
 

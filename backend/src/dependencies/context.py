@@ -3,10 +3,12 @@ from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException, Request
 from sqlmodel import Session
+from structlog import BoundLogger
 
 from src.factory import Factory, ProcessContext
 from src.config import Settings
 from src.dependencies.session import db_session_dependency
+from src.dependencies.logger import logger_dependency
 
 
 @dataclass(slots=True)
@@ -24,6 +26,9 @@ class RequestContext:
 
     session: Session
     """The database session."""
+
+    logger: BoundLogger
+    """The request logger, rebound with discovered context."""
 
     factory: Factory
     """The component factory."""
@@ -47,13 +52,15 @@ class ContextDependency:
         *,
         request: Request,
         session: Annotated[Session, Depends(db_session_dependency)],
+        logger: Annotated[BoundLogger, Depends(logger_dependency)],
     ) -> RequestContext:
         if not self._settings or not self._process_context:
             raise RuntimeError("ContextDependency not initialized")
         return RequestContext(
             request=request,
             session=session,
-            factory=Factory(self._process_context, session),
+            logger=logger,
+            factory=Factory(self._process_context, session, logger),
         )
 
     async def aclose(self) -> None:
@@ -71,7 +78,7 @@ class ContextDependency:
         if self._process_context:
             await self._process_context.aclose()
         self._settings = settings
-        self._process_context = ProcessContext.from_config(settings)
+        self._process_context = await ProcessContext.from_settings(settings)
 
 
 context_dependency = ContextDependency()

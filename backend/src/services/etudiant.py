@@ -1,3 +1,4 @@
+from structlog import BoundLogger
 from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlmodel import Session, select
 
@@ -6,13 +7,11 @@ from src.schemas import Etudiant
 
 class EtudiantService:
     def __init__(
-        self,
-        trimestre: int,
-        *,
-        session: Session,
+        self, trimestre: int, *, session: Session, logger: BoundLogger
     ) -> None:
         self._trimestre = trimestre
         self._session = session
+        self._logger = logger
 
     def get_etudiant(self, *, code_permanent: str, email: str) -> Etudiant | None:
         etudiant = self._session.exec(

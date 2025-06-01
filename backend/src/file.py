@@ -79,7 +79,7 @@ class LocalStorageProvider(StorageProvider):
                 found_files = list(self.base_directory.glob(file_name))
 
                 if not found_files:
-                    # Skip students with no resume file, or optionally raise an error
+                    # Skip students with no resume file
                     continue
 
                 resume_path = found_files[0]

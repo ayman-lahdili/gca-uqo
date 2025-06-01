@@ -1,7 +1,9 @@
-import httpx
+from httpx import AsyncClient, HTTPError
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional
+from structlog import BoundLogger
 import asyncio
+
 from src.models.uqo import Departement, UQOCours
 from src.cache import AsyncCache
 
@@ -13,7 +15,13 @@ class UQOCoursService:
     the AsyncCache for concurrency handling to prevent duplicate requests.
     """
 
-    def __init__(self, *, cours_cache: AsyncCache[List[UQOCours]]) -> None:
+    def __init__(
+        self,
+        *,
+        cours_cache: AsyncCache[List[UQOCours]],
+        http_client: AsyncClient,
+        logger: BoundLogger,
+    ) -> None:
         """Initialize the UQO course service.
 
         Parameters
@@ -23,6 +31,8 @@ class UQOCoursService:
         """
         self.url = "https://etudier.uqo.ca/cours"
         self._cours_cache = cours_cache
+        self._logger = logger
+        self._http_client = http_client
 
     async def get_courses(self, departement: Departement) -> List[UQOCours]:
         """Get courses for a specific department.
@@ -95,14 +105,15 @@ class UQOCoursService:
             }
 
             # Make the request
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(self.url, headers=headers, data=data)
-                response.raise_for_status()
+            response = await self._http_client.post(
+                self.url, headers=headers, data=data
+            )
+            response.raise_for_status()
 
-                # Parse and return the results
-                return self._parse_courses_html(response.text)
+            # Parse and return the results
+            return self._parse_courses_html(response.text)
 
-        except httpx.HTTPError as e:
+        except HTTPError as e:
             print(f"HTTP error fetching courses for {departement}: {str(e)}")
             raise
         except Exception as e:
@@ -128,29 +139,24 @@ class UQOCoursService:
         """
         headers = {}
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # Get the initial page to extract the token
-            response = await client.get(self.url)
-            response.raise_for_status()
+        # Get the initial page to extract the token
+        response = await self._http_client.get(self.url)
+        response.raise_for_status()
 
-            # Extract token from cookies
-            for cookie in client.cookies.jar:
-                if cookie.name.startswith(".AspNetCore.Antiforgery."):
-                    if cookie.value:
-                        headers = {"Cookie": f"{cookie.name}={cookie.value}"}
-                    break
+        # Extract token from cookies
+        for cookie in self._http_client.cookies.jar:
+            if cookie.name.startswith(".AspNetCore.Antiforgery."):
+                if cookie.value:
+                    headers = {"Cookie": f"{cookie.name}={cookie.value}"}
+                break
 
-            # Extract token from HTML
-            soup = BeautifulSoup(response.text, "html.parser")
-            token_input: Any = soup.find(
-                "input", {"name": "__RequestVerificationToken"}
-            )
+        # Extract token from HTML
+        soup = BeautifulSoup(response.text, "html.parser")
+        token_input: Any = soup.find("input", {"name": "__RequestVerificationToken"})
 
-            assert token_input and "value" in token_input.attrs, (
-                "Token not found in HTML"
-            )
-            token = token_input["value"]
-            return token, headers
+        assert token_input and "value" in token_input.attrs, "Token not found in HTML"
+        token = token_input["value"]
+        return token, headers
 
     def _parse_courses_html(self, html_content: str) -> List[UQOCours]:
         print("Parsing HTML content to extract courses")

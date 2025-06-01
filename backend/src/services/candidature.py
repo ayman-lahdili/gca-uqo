@@ -1,3 +1,4 @@
+from structlog import BoundLogger
 from sqlmodel import Session, select
 from fastapi.responses import FileResponse, StreamingResponse
 
@@ -17,11 +18,17 @@ from src.exceptions import (
 
 class CandidatureService:
     def __init__(
-        self, trimestre: int, *, session: Session, storage: StorageProvider
+        self,
+        trimestre: int,
+        *,
+        session: Session,
+        storage: StorageProvider,
+        logger: BoundLogger,
     ) -> None:
         self._trimestre = trimestre
         self._session = session
         self._storage = storage
+        self._logger = logger
 
     async def add_candidature(self, form: CandidatureForm) -> Etudiant:
         new_etudiant = Etudiant(

@@ -1,5 +1,6 @@
 import os
 import pytest
+import pytest_asyncio
 from collections.abc import Generator
 
 from fastapi.testclient import TestClient
@@ -37,9 +38,11 @@ def empty_database(test_settings: Settings, engine: Engine) -> None:
     init_db(test_settings, engine)
 
 
-@pytest.fixture(scope="function")
-def factory(test_settings: Settings, engine: Engine, empty_database: None) -> Factory:
-    return Factory.create(test_settings, engine)
+@pytest_asyncio.fixture(scope="function")
+async def factory(
+    test_settings: Settings, engine: Engine, empty_database: None
+) -> Factory:
+    return await Factory.create(test_settings, engine)
 
 
 @pytest.fixture(scope="function")

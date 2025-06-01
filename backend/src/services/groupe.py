@@ -1,3 +1,4 @@
+from structlog import BoundLogger
 from sqlmodel import Session, select
 
 from src.schemas import Seance, Activite, Candidature
@@ -9,13 +10,11 @@ from src.exceptions import ActiviteNotFoundError
 
 class GroupeService:
     def __init__(
-        self,
-        trimestre: int,
-        *,
-        session: Session,
+        self, trimestre: int, *, session: Session, logger: BoundLogger
     ) -> None:
         self._trimestre = trimestre
         self._session = session
+        self._logger = logger
 
     async def get_groupe(self, *, sigle: str, groupe: str) -> Seance | None:
         return self._session.exec(

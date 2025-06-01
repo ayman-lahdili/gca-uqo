@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from structlog import BoundLogger
 from sqlmodel import select
 from sqlmodel import Session
 
@@ -12,12 +13,9 @@ from src.exceptions import CampagneTooAhead
 
 
 class CampagneService:
-    def __init__(
-        self,
-        *,
-        session: Session,
-    ) -> None:
+    def __init__(self, *, session: Session, logger: BoundLogger) -> None:
         self._session = session
+        self._logger = logger
 
     def get_campagne(self, trimestre: int) -> Campagne | None:
         campagne = self._session.exec(

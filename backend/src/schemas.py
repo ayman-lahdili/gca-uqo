@@ -18,7 +18,7 @@ from sqlalchemy import ForeignKeyConstraint
 
 class Campagne(SQLModel, table=True):
     """Represents a campaign for a given trimester, its configurations and grouping related courses."""
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     trimestre: int = Field(index=True)
     status: CampagneStatus = Field(default=CampagneStatus.en_cours)
@@ -85,6 +85,7 @@ class Seance(SQLModel, table=True):
 
 class ActiviteCandidature(SQLModel, table=True):
     """Association table linking activities and candidatures."""
+
     id_activite: int = Field(foreign_key="activite.id", primary_key=True)
     id_candidature: int = Field(foreign_key="candidature.id", primary_key=True)
 

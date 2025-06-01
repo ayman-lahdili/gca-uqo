@@ -30,10 +30,10 @@ async def get_programmes(
 
 
 @router.get("/v1/uqo/{trimestre}/horaire")
-def get_horaire(
+async def get_horaire(
     *,
     trimestre: int,
     context: Context,
 ):
     uqo_service = context.factory.create_uqo_horaire_service(trimestre=trimestre)
-    return uqo_service.get_horaire(trimestre=trimestre)
+    return await uqo_service.get_horaire(trimestre=trimestre)

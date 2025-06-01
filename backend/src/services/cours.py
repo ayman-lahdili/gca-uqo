@@ -1,3 +1,4 @@
+from structlog import BoundLogger
 from sqlmodel import Session, select
 
 from src.schemas import Cours
@@ -6,13 +7,11 @@ from src.models.responses import ApprovalResponse, ChangeInfo, ChangeType
 
 class CoursService:
     def __init__(
-        self,
-        trimestre: int,
-        *,
-        session: Session,
+        self, trimestre: int, *, session: Session, logger: BoundLogger
     ) -> None:
         self._trimestre = trimestre
         self._session = session
+        self._logger = logger
 
     async def get_course(self, sigle: str) -> Cours | None:
         return self._session.exec(
