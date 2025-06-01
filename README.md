@@ -53,16 +53,21 @@ The design pattern used throughout the backend is heavily inspired by the recomm
 ### Dashboard
 
 ![Dashboard](img/dashboard.png)
+
 ![Change approval](img/change_approval.png)
+
 ![Activite diff](img/activite_approve.png)
+
 ![Dark mode](img/dark_mode.png)
 
 ### Student
 
 ![student](img/student.png)
+
 ![Candidates](img/candiatures.png)
 
 ### Budget and Campagne management
 
 ![Budget](img/budget.png)
+
 ![CSV Export](img/export.png.png)
