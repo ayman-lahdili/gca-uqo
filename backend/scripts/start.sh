@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Ensuring data directory exists..."
-mkdir -p /app/data
+mkdir -p "$(dirname "$SQLLITE_FILE_NAME")"
 
 echo "Running Alembic migrations..."
 alembic upgrade head
