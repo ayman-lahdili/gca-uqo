@@ -1,4 +1,4 @@
-FROM python:3.13.1-slim
+FROM python:3.13.1-bullseye
 
 # Install bash and uv
 RUN apt-get update && apt-get install -y bash && pip install --no-cache-dir uv

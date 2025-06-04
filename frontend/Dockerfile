@@ -1,7 +1,7 @@
 # ----------------------
 # Build Stage
 # ----------------------
-FROM node:18-slim AS builder
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
